@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>命運市集・一頁式報告</title>
+  <meta name="description" content="八字＋紫微（＋姓名學）＋六段解讀，一頁列印／存 PDF">
+  <meta name="color-scheme" content="light">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* 報告永遠白底黑字（不管系統深淺色），A4 友善；盤面樣式沿用 style.css */
+    :root, :root:not([data-theme="dark"]) {
+      --bg: #fff; --bg-2: #fff; --panel: #fff; --panel-solid: #fff;
+      --line: #b9b2a2; --line-soft: #ddd6c6;
+      --ink: #111; --ink-soft: #444; --ink-mute: #777;
+      --gold: #8a6d1f; --gold-soft: rgba(138, 109, 31, 0.1);
+      --cinnabar: #a8352b; --cinnabar-soft: rgba(168, 53, 43, 0.1);
+      --jade: #2f7f5c; --jade-soft: rgba(47, 127, 92, 0.12);
+      --grey: #6b6e78; --grey-soft: rgba(107, 110, 120, 0.12);
+      --star-opacity: 0; color-scheme: light;
+    }
+    body { background: #fff; color: #111; }
+    .sky { display: none; }
+    .report-main { max-width: 860px; padding-bottom: 40px; }
+    .report-bar { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line-soft); padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .report-bar .hint { margin-left: auto; }
+    .report-head { text-align: center; padding: 18px 0 6px; border-bottom: 2px solid var(--gold); margin-bottom: 12px; }
+    .report-head h1 { margin: 0; font-size: 1.6rem; color: var(--gold); }
+    .report-head h1 small { display: block; font-size: 0.85rem; color: var(--ink-soft); letter-spacing: 0.3em; font-weight: 400; }
+    .report-head .who { font-family: var(--serif); font-size: 1.05rem; margin: 8px 0 0; }
+    .report-head .meta { color: var(--ink-mute); font-size: 0.78rem; margin: 2px 0 0; }
+    .report-main h2 { font-size: 1.15rem; color: var(--gold); margin: 22px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line-soft); display: flex; align-items: baseline; gap: 10px; }
+    .report-main h2 small { font-family: var(--sans); font-size: 0.72rem; color: var(--ink-mute); font-weight: 400; letter-spacing: 0.05em; }
+    .report-main .card { background: #fff; border-color: var(--line-soft); break-inside: avoid; }
+    .report-main .section .evid { margin: 6px 0 0; font-size: 0.74rem; color: var(--ink-mute); line-height: 1.5; }
+    .report-main .pending { color: var(--ink-mute); font-family: var(--serif); padding: 10px 0; }
+    .report-main .pending::after { content: "…"; }
+    .report-main .err { color: var(--cinnabar); font-size: 0.9rem; padding: 6px 0; }
+    .report-main .ziwei-wrap { overflow: visible; margin: 8px 0; padding: 0; }
+    .report-main .ziwei-grid { min-width: 0; }
+    .report-main .palace { min-height: 104px; font-size: 0.68rem; }
+    .report-main .palace .major { font-size: 1rem; }
+    .report-main .ln-grid.one .ln { max-width: 520px; }
+    .report-main .kv-more { display: none; }
+    .report-main .strength-notes > summary::after { content: none; }
+    .report-main .strength-notes > summary { pointer-events: none; }
+    .report-foot { margin-top: 28px; border-top: 1px dashed var(--line-soft); padding-top: 10px; color: var(--ink-mute); font-size: 0.78rem; }
+    @page { size: A4; margin: 12mm 12mm 14mm; }
+    @media print {
+      .no-print, .report-bar { display: none !important; }
+      body { font-size: 11pt; }
+      .report-main { max-width: none; padding: 0; }
+      .report-main h2 { break-after: avoid; }
+      /* 命盤卡比一頁還高：整張「不可斷頁」會被推到下一頁，第一頁只剩標題；改成卡內可斷，四柱、宮格、大運流年列各自不斷 */
+      .report-main .card:has(.pillars), .report-main .card:has(.ziwei-grid) { break-inside: auto; }
+      .ziwei-grid { break-inside: avoid; }
+      .pillars, .dayun-row, .liunian-row, .dx-detail, .ln-grid { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+    @media (max-width: 600px) {
+      .report-main .ziwei-wrap { overflow-x: auto; margin: 8px -16px; padding: 0 16px; }
+      .report-main .ziwei-grid { min-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-bar no-print">
+    <button type="button" class="btn primary" id="print-btn">列印／存 PDF</button>
+    <a class="btn" href="index.html">回主頁</a>
+    <span class="hint" id="report-status">載入中…</span>
+  </div>
+  <main class="wrap report-main" id="report"></main>
+
+  <script>
+    // ?mock=1 時先載入假資料（不打後端）
+    if (new URLSearchParams(location.search).get('mock') === '1') {
+      document.write('<script src="mock-data.js"><\/script>');
+    }
+  </script>
+  <script src="render.js"></script>
+  <script>
+    /* 一頁式報告（7-3）：從 query string 讀出生資料 → /api/cast/all → 八字、紫微（精簡）、姓名學（有填姓名才有）→ /api/reading ×2～3 → 六段解讀＋查核 → 免責。
+     * 渲染全部用 render.js 的純函式；這裡只管流程與版面。 */
+    'use strict';
+    (function () {
+      const MOCK = Boolean(window.MOCK_DATA);
+      const API = { castAll: '/api/cast/all', reading: '/api/reading' };
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const q = new URLSearchParams(location.search);
+      const root = $('#report');
+      const status = $('#report-status');
+      const setStatus = (t) => { if (status) status.textContent = t || ''; };
+      $('#print-btn').addEventListener('click', () => window.print());
+
+      // ---- 出生資料（query string → 契約格式）
+      function birthFromQuery() {
+        const b = { birth_date: q.get('birth_date') || '', tz_offset_hours: Number(q.get('tz') || q.get('tz_offset_hours') || 8), use_true_solar_time: true };
+        if (!b.birth_date) return null;
+        for (const k of ['name', 'full_name', 'birth_time', 'gender', 'place']) { const v = (q.get(k) || '').trim(); if (v) b[k] = v; }
+        const lng = q.get('longitude');
+        if (lng != null && lng !== '' && Number.isFinite(Number(lng))) b.longitude = Number(lng);
+        return b;
+      }
+      /** 流派：?school=…&overrides={json} */
+      function schoolPayload() {
+        const out = {};
+        const s = (q.get('school') || '').trim();
+        if (s) out.school = s;
+        try { const ov = JSON.parse(q.get('overrides') || 'null'); if (ov && typeof ov === 'object') out.overrides = ov; } catch { /* 忽略 */ }
+        return out;
+      }
+      /** 自帶金鑰：沿用 app.js 存在 localStorage 的 bof.llm（勾了「記住」才有金鑰；沒有就用站台的 AI） */
+      function llmPayload() {
+        try {
+          const s = JSON.parse(localStorage.getItem('bof.llm') || 'null');
+          if (!s || s.mode !== 'byok' || !s.backend) return {};
+          if (s.backend !== 'openai_compatible' && !s.api_key) return {};
+          return { llm: { backend: s.backend, api_key: s.api_key || '', model: s.model || '', base_url: s.backend === 'openai_compatible' ? (s.base_url || '') : '', thinking: s.thinking || 'default' } };
+        } catch { return {}; }
+      }
+
+      // ---- 呼叫層（含 mock）
+      class ApiError extends Error { constructor(status, body) { super((body && body.message) || `HTTP ${status}`); this.status = status; this.code = body && body.error; this.data = body || {}; } }
+      async function request(path, body) {
+        if (MOCK) return mockRequest(path, body);
+        let res;
+        try { res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+        catch { throw new ApiError(0, { error: 'network', message: '連不上後端，請確認服務是否啟動。' }); }
+        const text = await res.text();
+        let json = null;
+        try { json = text ? JSON.parse(text) : null; } catch { json = { error: 'bad_json', message: text.slice(0, 200) }; }
+        if (!res.ok) throw new ApiError(res.status, json);
+        return json;
+      }
+      async function mockRequest(path, body) {
+        const M = window.MOCK_DATA;
+        await new Promise((r) => setTimeout(r, 300));
+        const hasTime = Boolean(body.birth && body.birth.birth_time);
+        const withSchool = (chart) => {
+          if (!chart || typeof M.schoolFor !== 'function') return chart;
+          const info = M.schoolFor(body || {});
+          if (info && info.error) throw new ApiError(400, { error: 'bad_school', message: info.error });
+          return info ? { ...chart, school: info } : chart;
+        };
+        const hasName = Boolean(body.birth && body.birth.full_name && M.xingming);
+        if (path === API.castAll) return { bazi: withSchool(M.bazi), ziwei: hasTime ? withSchool(M.ziwei) : null, ziwei_candidates: hasTime ? null : M.ziwei_candidates, xingming: hasName ? withSchool(M.xingming) : null, xingming_error: null };
+        if (path === API.reading) {
+          if (body.system === 'ziwei' && !hasTime) throw new ApiError(422, { error: 'needs_birth_time', message: '紫微斗數需要出生時辰' });
+          if (body.system === 'xingming' && !hasName) throw new ApiError(422, { error: 'needs_full_name', message: '姓名學需要完整姓名' });
+          const r = { ziwei: M.reading_ziwei, xingming: M.reading_xingming }[body.system] || M.reading_bazi;
+          return body.llm ? { ...r, byok: true, backend: body.llm.backend, model: body.llm.model || r.model } : r;
+        }
+        throw new ApiError(404, { error: 'not_found', message: `mock 沒有 ${path}` });
+      }
+      const explain = (e) => {
+        if (!(e instanceof ApiError)) return e.message || String(e);
+        if (e.status === 429) return '今日次數已達上限，明天再來吧。';
+        if (e.status === 503) return '命理師暫時休息中，請稍後再試。';
+        if (e.status === 400 && e.code === 'refused') return e.data.reply || e.message;
+        if (e.status === 422 && e.code === 'needs_birth_time') return '紫微斗數需要出生時辰。';
+        if (e.status === 422 && e.code === 'needs_full_name') return '姓名學需要完整姓名。';
+        return e.message;
+      };
+
+      // ---- 版面
+      const h2 = (text, small) => el('h2', {}, text, small && el('small', { text: small }));
+      const describe = (b) => `${b.name || '命主'}・${b.birth_date}${b.birth_time ? ' ' + b.birth_time : '（時辰不明）'}${b.gender ? '・' + ({ male: '男', female: '女' })[b.gender] : ''}`;
+      const costLine = (r) => !r || !r.backend ? '' : r.backend === 'mock' ? '離線示範' : `${r.byok === true ? '自帶金鑰・' : ''}${r.model || r.backend}`;
+
+      function renderHead(birth, charts) {
+        const chart = charts.bazi || charts.ziwei || {};
+        const b = chart.birth || birth;                      // 後端回的 birth.place 可能帶日光節約時間說明
+        const tz = b.tz_offset_hours != null ? `UTC${b.tz_offset_hours >= 0 ? '+' : ''}${b.tz_offset_hours}` : '';
+        return el('div', { class: 'report-head' },
+          el('h1', {}, '☯ 命運市集', el('small', { text: '命理報告' })),
+          el('p', { class: 'who', text: describe(b) }),
+          el('p', { class: 'meta', text: [b.place ? `出生地 ${b.place}` : null, b.longitude != null ? `經度 ${b.longitude}` : null, tz].filter(Boolean).join('　') }),
+          el('p', { class: 'meta' }, chart.cast_at ? `排盤 ${String(chart.cast_at).replace('T', ' ').slice(0, 16)}` : '', chart.school && chart.school.title ? el('span', {}, '　流派 ', el('span', { class: 'school-title', text: chart.school.title, title: chart.school.summary || '' })) : ''));
+      }
+
+      function renderBaziSection(chart) {
+        if (!chart) return [h2('八字'), el('p', { class: 'err', text: '沒有八字命盤。' })];
+        const p = chart.payload || {};
+        const current = currentDayun(chart);
+        const strength = renderStrength(chart, { open: true });
+        return [
+          h2('八字', chart.subject),
+          el('div', { class: 'card' },
+            renderPillars(p, { chart }),
+            warningsBlock(chart.warnings),
+            renderBaziKv(chart, current, strength),
+            strength,
+            el('h3', { text: '大運' }), renderDayunRow(p, current),
+            el('h3', { text: '流年' }), renderLiunianRow(chart)),
+        ];
+      }
+
+      function renderZiweiSection(chart, candidates) {
+        if (!chart) return [h2('紫微斗數'), el('p', { class: 'err', text: candidates ? '紫微需要出生時辰：請回主頁用十二時辰候選對照後再出報告。' : '沒有紫微命盤。' })];
+        const p = chart.payload || {};
+        const year = chart.cast_at ? Number(String(chart.cast_at).slice(0, 4)) : null;
+        return [
+          h2('紫微斗數', chart.subject),
+          el('div', { class: 'card' },
+            renderZiweiGrid(chart, { compact: true }),
+            warningsBlock(chart.warnings),
+            renderLuckNow(p.luck, { year }),
+            ('luck' in p && p.luck == null) && el('p', { class: 'hint', text: '大限 → 流年需要性別才能定方向。' })),
+        ];
+      }
+
+      /** 姓名學：沒填姓名就整節不出；填了但排不出來（非中文、罕用字）就印原因 */
+      function renderXingmingSection(chart, error, birth) {
+        if (!birth.full_name) return [];
+        if (!chart) return [h2('姓名學'), el('p', { class: 'err', text: `姓名學排不出來：${error || '沒有姓名學盤面。'}` })];
+        return [h2('姓名學', chart.subject), renderXingming(chart, { bare: true })];
+      }
+
+      function renderReadingSection(reading, charts, zh) {
+        const list = [charts[reading.system], charts.bazi, charts.ziwei, charts.xingming];
+        return [
+          renderChecks(reading.checks),
+          (reading.sections || []).map((s) => el('div', { class: `card section dir-${s.direction || '平'}` },
+            el('h3', {}, s.title || s.key, el('span', { class: `dir dir-tag-${s.direction || '平'}`, text: s.direction || '—' })),
+            el('p', { class: 'text', text: s.text || '' }),
+            el('p', { class: 'evid', text: `依據：${hasItems(s.evidence) ? s.evidence.map((id) => `${factLabel(id, list)}（${id}）`).join('、') : '—'}${hasItems(s.cards) ? '　知識卡：' + s.cards.join('、') : ''}` }))),
+        ];
+      }
+
+      async function readingBlock(system, zh, birth, charts, extra) {
+        const box = el('div', {}, h2(`${zh}解讀`), el('p', { class: 'pending', text: '命理師正在細看命盤' }));
+        root.append(box);
+        if (!charts[system]) { box.replaceChildren(h2(`${zh}解讀`), el('p', { class: 'err', text: `沒有${zh}命盤，略過解讀。` })); return null; }
+        try {
+          const r = await request(API.reading, { system, birth, ...extra });
+          box.replaceChildren(h2(`${zh}解讀`, [r.persona, costLine(r)].filter(Boolean).join('・')), ...renderReadingSection(r, charts, zh).flat().filter(Boolean));
+          return r;
+        } catch (e) {
+          box.replaceChildren(h2(`${zh}解讀`), el('p', { class: 'err', text: `解讀失敗：${explain(e)}` }));
+          return null;
+        }
+      }
+
+      async function main() {
+        const birth = birthFromQuery();
+        if (!birth) {
+          root.append(el('p', { class: 'empty', text: '缺出生資料。請從主頁的「一頁式報告」按鈕開啟，或在網址帶 ?birth_date=1990-06-15&birth_time=14:30&gender=female&place=台北' }));
+          setStatus('');
+          return;
+        }
+        const extra = { ...schoolPayload(), ...llmPayload() };
+        setStatus(`排盤中…${extra.llm ? '　AI：自帶金鑰（' + extra.llm.backend + '）' : ''}`);
+        let data;
+        try {
+          data = await request(API.castAll, { birth, ...schoolPayload() });
+        } catch (e) {
+          root.append(renderHead(birth, {}), el('p', { class: 'err', text: `排盤失敗：${explain(e)}` }));
+          setStatus('排盤失敗');
+          return;
+        }
+        const charts = { bazi: data.bazi || null, ziwei: data.ziwei || null, xingming: data.xingming || null };
+        root.append(renderHead(birth, charts), ...renderBaziSection(charts.bazi), ...renderZiweiSection(charts.ziwei, data.ziwei_candidates),
+          ...renderXingmingSection(charts.xingming, data.xingming_error, birth));
+        document.title = `${describe((charts.bazi || charts.ziwei || {}).birth || birth)}・命理報告`;
+        setStatus('命理師解讀中…');
+        const r1 = await readingBlock('bazi', '八字', birth, charts, extra);
+        const r2 = await readingBlock('ziwei', '紫微', birth, charts, extra);
+        const r3 = charts.xingming ? await readingBlock('xingming', '姓名學', birth, charts, extra) : null;
+        const disclaimer = (r1 && r1.disclaimer) || (r2 && r2.disclaimer) || (r3 && r3.disclaimer) || '本報告依命盤事實與程式規則產生，僅供參考，不構成醫療、投資、法律建議。';
+        root.append(el('div', { class: 'report-foot' }, el('p', { class: 'disclaimer', text: disclaimer }), el('p', { class: 'hint', text: `命運市集・${new Date().toLocaleString('zh-TW', { hour12: false })} 產生${MOCK ? '・mock 模式（假資料）' : ''}` })));
+        setStatus('完成，可按「列印／存 PDF」。');
+      }
+      document.addEventListener('DOMContentLoaded', main);
+    })();
+  </script>
+</body>
+</html>

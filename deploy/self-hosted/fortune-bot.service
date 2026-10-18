@@ -1,0 +1,22 @@
+# /etc/systemd/system/fortune-bot.service — Telegram 機器人（選做）
+[Unit]
+Description=AI 命理師 Telegram 機器人
+After=network-online.target fortune.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fortune
+Group=fortune
+WorkingDirectory=/opt/fortune/app
+EnvironmentFile=/opt/fortune/app/.env
+ExecStart=/opt/fortune/app/.venv/bin/python -m fortune bot
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/fortune/app/data
+
+[Install]
+WantedBy=multi-user.target

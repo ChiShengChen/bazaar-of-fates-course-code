@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>命運市集・AI 命理師</title>
+  <meta name="description" content="有依據、可查核的八字、紫微斗數與姓名學 AI 解讀">
+  <meta name="color-scheme" content="dark light">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="sky" aria-hidden="true"></div>
+  <!-- 出生地候選（城市表與別名來自 /api/cities，兩個表單共用） -->
+  <datalist id="city-list"></datalist>
+
+  <header class="site-header">
+    <div class="wrap">
+      <h1 class="brand"><span class="brand-mark">☯</span> 命運市集 <small>AI 命理師</small></h1>
+      <p class="persona-line" id="persona-line">命理師準備中…</p>
+      <p class="ai-status" id="ai-status" title="解讀後端狀態（來自 /api/health）"><span class="dot"></span>連線中…</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- 輸入區（常駐、可收合） -->
+    <details class="panel birth-panel" id="birth-panel" open>
+      <summary><span>出生資料</span><span class="summary-brief" id="birth-brief"></span></summary>
+      <form id="birth-form" class="birth-form" autocomplete="off">
+        <label>稱呼 <input name="name" placeholder="例：小美"></label>
+        <label>姓名 <input name="full_name" maxlength="12" placeholder="例：陳美玲（姓名學用）"><small class="hint">可留空；複姓或冠夫姓加空白：歐陽 娜娜</small></label>
+        <label>出生日期 <input name="birth_date" type="date" required min="1900-01-01" max="2100-12-31"></label>
+        <label>出生時間 <input name="birth_time" type="time"><small class="hint">不知道可留空</small></label>
+        <label>性別
+          <select name="gender">
+            <option value="">未填</option>
+            <option value="male">男</option>
+            <option value="female">女</option>
+          </select>
+        </label>
+        <label>出生地
+          <input name="place" list="city-list" class="place-input" placeholder="例：台北、Taipei（可自填）" autocomplete="off">
+          <small class="hint geo-note" aria-live="polite"></small>
+        </label>
+        <label class="lng-field">經度 <input name="longitude" type="number" step="0.01" min="-180" max="180" placeholder="填出生地自動補"></label>
+        <label>時區 <input name="tz_offset_hours" type="number" step="0.5" min="-12" max="14" value="8"><small class="hint">台灣 +8；日光節約時間年份會自動 +1</small></label>
+        <div class="form-actions">
+          <button type="submit" class="btn primary" id="cast-btn">排盤</button>
+        </div>
+      </form>
+    </details>
+
+    <!-- 進階：流派（開關與選項全部來自 /api/schools，這裡只有殼） -->
+    <details class="panel school-panel" id="school-panel">
+      <summary><span>進階：流派</span><span class="summary-brief" id="school-brief"></span></summary>
+      <div class="school-body">
+        <div class="school-head">
+          <label class="school-pick">流派
+            <select id="school-select" aria-label="流派"></select>
+          </label>
+          <div class="school-about">
+            <p class="school-desc" id="school-desc"></p>
+            <small class="school-source" id="school-source"></small>
+          </div>
+        </div>
+        <div class="school-groups" id="school-groups"></div>
+        <div class="school-actions">
+          <button type="button" class="btn small" id="school-reset">恢復此流派預設</button>
+          <span class="hint" id="school-stale" hidden>設定已變更，按「排盤」重新排。</span>
+          <span class="hint school-note">只有改過的開關會以 overrides 送出；換流派後對話會重新開始。</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- AI 設定：用站台的 AI，或自帶金鑰選供應商／模型（供應商清單來自 /api/llm/backends） -->
+    <details class="panel llm-panel" id="llm-panel">
+      <summary><span>AI 設定（自帶金鑰）</span><span class="summary-brief" id="llm-brief">站台預設</span></summary>
+      <div class="llm-body">
+        <div class="llm-modes" role="radiogroup" aria-label="AI 模式">
+          <label><input type="radio" name="llm_mode" value="site" checked> 用站台的 AI（預設）</label>
+          <label><input type="radio" name="llm_mode" value="byok"> 用我自己的金鑰</label>
+        </div>
+        <div class="llm-byok" id="llm-byok" hidden>
+          <div class="llm-grid">
+            <label>供應商
+              <select id="llm-backend" aria-label="供應商"></select>
+            </label>
+            <label id="llm-key-field">金鑰
+              <span class="llm-key-wrap">
+                <input id="llm-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…">
+                <button type="button" class="btn small" id="llm-key-toggle" aria-label="顯示金鑰">顯示</button>
+              </span>
+            </label>
+            <label id="llm-base-field" hidden>端點 base_url
+              <input id="llm-base" autocomplete="off" spellcheck="false" placeholder="http://localhost:11434/v1">
+            </label>
+            <label>思考深度
+              <select id="llm-thinking" aria-label="思考深度"></select>
+              <small class="hint">off 最便宜、最快；high 想得久、也貴。</small>
+            </label>
+          </div>
+          <div class="llm-actions">
+            <button type="button" class="btn small" id="llm-verify">驗證並載入模型</button>
+            <span class="llm-status" id="llm-status"></span>
+          </div>
+          <label class="llm-model-field" id="llm-model-field">模型
+            <select id="llm-model" aria-label="模型"></select>
+            <small class="hint" id="llm-model-hint">按「驗證並載入模型」後會列出此金鑰可用的模型。</small>
+          </label>
+          <div class="llm-actions llm-remember-row">
+            <label class="llm-remember"><input type="checkbox" id="llm-remember" checked> 記住在這個瀏覽器</label>
+            <button type="button" class="btn small" id="llm-clear">清除</button>
+            <small class="hint llm-privacy">金鑰只存在你的瀏覽器，每次請求直接送到後端轉給該供應商，伺服器不保存、不記錄。</small>
+          </div>
+        </div>
+        <p class="llm-error" id="llm-error" hidden></p>
+      </div>
+    </details>
+
+    <div id="notice" class="notice" hidden></div>
+
+    <!-- 分頁 -->
+    <nav class="tabs" role="tablist">
+      <button class="tab active" role="tab" data-tab="cast" aria-selected="true">排盤</button>
+      <button class="tab" role="tab" data-tab="reading">解讀</button>
+      <button class="tab" role="tab" data-tab="synastry">合盤</button>
+      <button class="tab" role="tab" data-tab="chat">對話</button>
+    </nav>
+
+    <!-- 1. 排盤 -->
+    <section class="tab-panel active" id="tab-cast" role="tabpanel">
+      <div class="toolbar">
+        <div class="seg" id="chart-system-seg">
+          <button class="seg-btn active" data-system="bazi">八字</button>
+          <button class="seg-btn" data-system="ziwei">紫微</button>
+          <button class="seg-btn" data-system="xingming">姓名</button>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn" id="export-png" disabled>匯出 PNG</button>
+          <button class="btn" id="print-chart" disabled>列印／存 PDF</button>
+          <button class="btn" id="report-btn" title="開新分頁：八字＋紫微（有填姓名再加姓名學）＋解讀的一頁式報告，可直接存成 PDF">一頁式報告</button>
+        </div>
+      </div>
+      <div id="chart-area" class="chart-area">
+        <p class="empty">填好出生資料後按「排盤」。</p>
+      </div>
+    </section>
+
+    <!-- 2. 解讀 -->
+    <section class="tab-panel" id="tab-reading" role="tabpanel">
+      <form id="reading-form" class="inline-form">
+        <div class="seg" id="reading-system-seg">
+          <button type="button" class="seg-btn active" data-system="bazi">八字</button>
+          <button type="button" class="seg-btn" data-system="ziwei">紫微</button>
+          <button type="button" class="seg-btn" data-system="xingming">姓名</button>
+        </div>
+        <input name="focus" placeholder="想問的重點（可留空），例：今年換工作合適嗎？">
+        <button type="submit" class="btn primary" id="reading-btn">請命理師解讀</button>
+        <button type="button" class="btn" id="consistency-btn" title="同一張盤問三次模型，看方向與依據是否一致（會呼叫三次）">同盤問三次</button>
+        <button type="button" class="btn" id="print-reading" disabled>列印／存 PDF</button>
+      </form>
+      <div id="consistency-area" class="consistency-area"></div>
+      <div id="reading-area" class="reading-area">
+        <p class="empty">先排盤，再請命理師解讀。</p>
+      </div>
+    </section>
+
+    <!-- 3. 合盤 -->
+    <section class="tab-panel" id="tab-synastry" role="tabpanel">
+      <details class="panel" open>
+        <summary>第二個人的出生資料</summary>
+        <form id="birth-form-b" class="birth-form" autocomplete="off">
+          <label>稱呼 <input name="name" placeholder="例：小明"></label>
+          <label>出生日期 <input name="birth_date" type="date" required min="1900-01-01" max="2100-12-31"></label>
+          <label>出生時間 <input name="birth_time" type="time"><small class="hint">不知道可留空</small></label>
+          <label>性別
+            <select name="gender">
+              <option value="">未填</option>
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </label>
+          <label>出生地
+            <input name="place" list="city-list" class="place-input" placeholder="例：台中、Taichung（可自填）" autocomplete="off">
+            <small class="hint geo-note" aria-live="polite"></small>
+          </label>
+          <label class="lng-field">經度 <input name="longitude" type="number" step="0.01" min="-180" max="180" placeholder="填出生地自動補"></label>
+          <label>時區 <input name="tz_offset_hours" type="number" step="0.5" min="-12" max="14" value="8"></label>
+          <div class="form-actions">
+            <button type="submit" class="btn primary" id="synastry-btn">合盤</button>
+          </div>
+        </form>
+      </details>
+      <div id="synastry-area" class="synastry-area">
+        <p class="empty">上方填第一個人、這裡填第二個人，按「合盤」。</p>
+      </div>
+    </section>
+
+    <!-- 4. 對話 -->
+    <section class="tab-panel" id="tab-chat" role="tabpanel">
+      <div class="chat-window" id="chat-window"></div>
+      <div class="chat-suggestions" id="chat-suggestions"></div>
+      <form id="chat-form" class="chat-form">
+        <input name="message" placeholder="問命理師一個問題…" required>
+        <button type="submit" class="btn primary" id="chat-btn">送出</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>本服務提供有依據、可查核的命理解讀，僅供參考。 <a href="/api/health" target="_blank" rel="noopener">服務狀態</a> ・ <a href="/api/usage" id="usage-link">今日用量</a></p>
+    </div>
+  </footer>
+
+  <!-- 彈出層（今日用量等小視窗共用） -->
+  <dialog id="card-dialog" class="card-dialog">
+    <div class="card-dialog-body" id="card-dialog-body"></div>
+    <form method="dialog"><button class="btn">關閉</button></form>
+  </dialog>
+
+  <script>
+    // ?mock=1 時先載入假資料（不打後端）
+    if (new URLSearchParams(location.search).get('mock') === '1') {
+      document.write('<script src="mock-data.js"><\/script>');
+    }
+  </script>
+  <script src="render.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

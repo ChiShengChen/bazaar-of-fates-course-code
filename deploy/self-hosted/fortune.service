@@ -1,0 +1,26 @@
+# /etc/systemd/system/fortune.service — AI 命理師網站（FastAPI）
+# 安裝：sudo cp deploy/self-hosted/fortune.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now fortune
+[Unit]
+Description=AI 命理師（bazaar-of-fates-course）
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fortune
+Group=fortune
+WorkingDirectory=/opt/fortune/app
+EnvironmentFile=/opt/fortune/app/.env
+Environment=API_HOST=127.0.0.1
+Environment=API_PORT=8000
+ExecStart=/opt/fortune/app/.venv/bin/python -m fortune
+Restart=always
+RestartSec=3
+# 基本隔離
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/fortune/app/data
+
+[Install]
+WantedBy=multi-user.target

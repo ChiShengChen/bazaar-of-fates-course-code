@@ -1,0 +1,18 @@
+# /etc/caddy/Caddyfile — 反向代理＋自動 HTTPS（Let's Encrypt）
+# 把 fortune.example.com 換成你的網域；DNS 的 A 記錄要先指到這台機器。
+fortune.example.com {
+    encode gzip
+    reverse_proxy 127.0.0.1:8000 {
+        # SSE 串流不要被緩衝
+        flush_interval -1
+    }
+    # 基本的安全標頭
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+    log {
+        output file /var/log/caddy/fortune.log
+    }
+}

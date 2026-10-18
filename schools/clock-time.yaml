@@ -1,0 +1,10 @@
+# 「手錶時間派」：不換算真太陽時、晚子時不換日 —— 許多老派排盤與坊間網站的做法
+name: clock-time
+title: 手錶時間派
+source: 坊間常見排盤網站的預設；《三命通會》論子時以夜半為界
+description: 時辰直接用證件上的時間，不做經度與均時差修正；23 時後仍算當天日柱。對照課程預設可看出時柱、日柱差在哪。
+bazi:
+  true_solar_time: "off"
+  late_zi: same_day
+ziwei:
+  hour_source: clock

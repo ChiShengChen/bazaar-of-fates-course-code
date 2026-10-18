@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["hnd1"],
+  "functions": {
+    "fortune/api/main.py": {
+      "maxDuration": 300,
+      "excludeFiles": "{docs/**,tests/**,deploy/**,data/**,.claude/**,**/__pycache__/**}"
+    }
+  }
+}

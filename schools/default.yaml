@@ -1,0 +1,25 @@
+# 課程預設流派 — 每個開關的選項見 fortune/school.py。想加一派：複製這個檔、改名、改開關、填 source。
+name: default
+title: 課程預設
+source: 課程編寫，綜合《子平真詮》《滴天髓》《紫微斗數全書》通論與多數排盤軟體的預設
+description: 多數排盤軟體的做法；流派有歧見處取通行版，盤面會標出另一派的結果。
+bazi:
+  year_boundary: lichun
+  month_stem_follows: year_pillar
+  late_zi: next_day
+  true_solar_time: "on"
+  minggong_month: jie
+  yangren_yin_stems: chenwei
+  xusui_boundary: lunar_new_year
+  chenggu_year: lichun
+  strength_method: score_v2
+ziwei:
+  leap_month: split
+  sihua_variant: standard
+  hour_source: true_solar
+  late_zi: same_day
+  tianma_basis: year_branch
+xingming:
+  stroke_basis: kangxi
+  numeral_strokes: value
+  jiashu: "on"

@@ -1,0 +1,12 @@
+# 「中氣命宮＋天府化科派」：八字命宮以中氣定生月；紫微庚壬年四化採天府化科；閏月全算本月
+name: zhongqi-tianfu
+title: 中氣命宮・天府化科派
+source: 《果老星宗》命宮以中氣；部分紫微傳承（庚壬天府化科）；閏月歸本月為北派常見
+description: 示範三個常見歧見同時切換後，命宮、四化、閏月生人的命宮會怎麼變。
+bazi:
+  minggong_month: zhongqi
+  yangren_yin_stems: yinshen
+ziwei:
+  sihua_variant: tianfu_ke
+  leap_month: same
+  tianma_basis: month_branch

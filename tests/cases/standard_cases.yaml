@@ -1,0 +1,167 @@
+# 標準命例測試集（4-2）— 排盤引擎的「標準答案」。
+# 每個命例：birth（輸入）、expect（期望的盤）、note（這個命例在考什麼）。
+# 期望值經人工以五虎遁、五鼠遁、紫微安星口訣逐格核算，並與主流排盤軟體交叉比對；
+# 若你的流派規則不同（晚子時、閏月、真太陽時），請改 note 說明並調整期望值。
+
+- id: standard_1990
+  title: 一般命例（1990-06-15 14:30 女 台北）
+  birth: {name: 小美, birth_date: "1990-06-15", birth_time: "14:30", gender: female, longitude: 121.5}
+  expect:
+    bazi: {year: 庚午, month: 壬午, day: 辛亥, hour: 乙未, strength: 身弱}
+    ziwei: {life_branch: 亥, body_branch: 丑, five_class: 土五局, life_major: [巨門], ziwei_branch: 申,
+            palace: {子女宮: [紫微, 天府, 左輔, 火星, 祿存, 天馬], 夫妻宮: [太陰, 擎羊, 紅鸞], 官祿宮: [天同, 文昌, 天喜]}}
+  note: 基準案例。農曆庚午年五月廿三未時；真太陽時修正約 +4 分，不影響時支。
+
+- id: boundary_lichun_before
+  title: 立春前一小時（2024-02-04 15:00）
+  birth: {birth_date: "2024-02-04", birth_time: "15:00", gender: male, longitude: 121.5}
+  expect:
+    bazi: {year: 癸卯, month: 乙丑, day: 戊戌, hour: 己未}
+  note: 2024 立春在 16:27（東八區）。之前仍屬癸卯年、乙丑月。查表法會把整天都算成甲辰年，這裡會錯兩柱。
+
+- id: boundary_lichun_after
+  title: 立春後半小時（2024-02-04 17:00）
+  birth: {birth_date: "2024-02-04", birth_time: "17:00", gender: male, longitude: 121.5}
+  expect:
+    bazi: {year: 甲辰, month: 丙寅, day: 戊戌, hour: 庚申}
+  note: 同一天、過了 16:27 就換成甲辰年、丙寅月。日柱不變。
+
+- id: lichun_1984_midnight
+  title: 1984 立春剛過（1984-02-05 00:30）
+  birth: {birth_date: "1984-02-05", birth_time: "00:30", gender: male, longitude: 121.5}
+  expect:
+    bazi: {year: 甲子, month: 丙寅, day: 己巳, hour: 甲子}
+  note: 1984 立春在 2/4 23:19。2/5 凌晨已是甲子年；考「立春在深夜」的年界判斷。
+
+- id: late_zi_hour
+  title: 晚子時換日（2000-01-07 23:30）
+  birth: {birth_date: "2000-01-07", birth_time: "23:30", gender: male, longitude: 121.5}
+  expect:
+    bazi: {year: 己卯, month: 丁丑, day: 乙丑, hour: 丙子}
+  note: 2000-01-07 本身是甲子日；23 時後依「晚子時換日」派算乙丑日、丙子時。另一派不換日會得甲子日、甲子時。
+
+- id: no_birth_time
+  title: 時辰不明（1990-06-15 女）
+  birth: {birth_date: "1990-06-15", gender: female}
+  expect:
+    bazi: {year: 庚午, month: 壬午, day: 辛亥}
+    ziwei: needs_birth_time
+  note: 八字只排三柱、不猜時柱；紫微不排、回傳十二時辰候選讓使用者對照。
+
+- id: leap_month_2023
+  title: 閏二月下半月（2023-04-10 10:00 女）
+  birth: {birth_date: "2023-04-10", birth_time: "10:00", gender: female, longitude: 121.5}
+  expect:
+    bazi: {year: 癸卯, month: 丙辰, day: 戊戌, hour: 丁巳}
+    ziwei: {life_branch: 亥, body_branch: 酉, five_class: 水二局, ziwei_branch: 亥}
+  note: 農曆癸卯年閏二月二十。預設「閏月上半歸本月、下半歸次月」→ 當三月排，命宮亥。若用「整個閏月算本月」命宮會變成戌。
+
+- id: true_solar_time_flip
+  title: 真太陽時改變時支（2020-11-03 14:55 台北）
+  birth: {birth_date: "2020-11-03", birth_time: "14:55", gender: male, longitude: 121.5}
+  expect:
+    bazi: {year: 庚子, month: 丙戌, day: 庚戌, hour: 甲申}
+  note: 11 月初均時差約 +16 分，加上台北經度 +6 分，14:55 → 真太陽時 15:17，時支由未變申（甲申）。不換算真太陽時會得癸未時。
+
+- id: zydx_2026_hanlu_edge
+  title: 寒露後 88 分鐘，排盤網站卻算錯（2026-10-08 15:57 男 台北）
+  birth: {name: aaa, birth_date: "2026-10-08", birth_time: "15:57", gender: male, longitude: 121.5}
+  expect:
+    bazi: {year: 丙午, month: 戊戌, day: 乙卯, hour: 甲申}
+  note: 2026 寒露實際為 10-08 14:29（ephem 太陽黃經 195° 的瞬間；2024、2025 寒露皆與官方年曆吻合），15:57 已過寒露 → 戌月、戊戌。周易大學堂把寒露寫成 16:08 而排成丁酉月、22 小時起運，是錯的。真太陽時 16:15 只用來定時辰（申時）。
+
+- id: life_palace_in_zi
+  title: 命宮在子（五虎遁子丑宮干）（1990-06-15 12:00 女）
+  birth: {birth_date: "1990-06-15", birth_time: "12:00", gender: female, use_true_solar_time: false}
+  expect:
+    ziwei: {life_branch: 子, five_class: 火六局}
+  note: 庚年五虎遁子宮為戊子（霹靂火→火六局）。子、丑兩宮在寅之前，位移沒先對 12 取模會錯成丙子（澗下水→水二局）。
+
+# ---- 流派開關（school / overrides 欄位）：同一張盤換一派，期望值跟著變 ----
+- id: school_clock_time_late_zi
+  title: 手錶時間派：晚子時不換日（2000-01-07 23:30 男）
+  birth: {birth_date: "2000-01-07", birth_time: "23:30", gender: male, longitude: 121.5}
+  school: clock-time
+  expect:
+    bazi: {year: 己卯, month: 丁丑, day: 甲子, hour: 甲子}
+  note: 課程預設算乙丑日丙子時；手錶時間派不換日 → 甲子日、甲子時。
+
+- id: school_clock_time_hour
+  title: 手錶時間派：不換算真太陽時（2020-11-03 14:55 男）
+  birth: {birth_date: "2020-11-03", birth_time: "14:55", gender: male, longitude: 121.5}
+  school: clock-time
+  expect:
+    bazi: {year: 庚子, month: 丙戌, day: 庚戌, hour: 癸未}
+  note: 課程預設真太陽時 15:17 → 甲申時；手錶 14:55 → 癸未時。
+
+- id: school_leap_same_month
+  title: 閏月全算本月（2023-04-10 10:00 女）
+  birth: {birth_date: "2023-04-10", birth_time: "10:00", gender: female, longitude: 121.5}
+  overrides: {ziwei: {leap_month: same}}
+  expect:
+    ziwei: {life_branch: 戌}
+  note: 閏二月二十；預設下半月歸三月命宮亥，全算二月則命宮戌。
+
+- id: school_lunar_new_year_boundary
+  title: 農曆新年換年（2024-02-08 10:00 男，立春後、春節前）
+  birth: {birth_date: "2024-02-08", birth_time: "10:00", gender: male, longitude: 121.5}
+  overrides: {bazi: {year_boundary: lunar_new_year}}
+  expect:
+    bazi: {year: 癸卯, month: 甲寅, day: 壬寅, hour: 乙巳}
+  note: 2024 立春 2/4、春節 2/10。立春派年柱甲辰、月柱丙寅；農曆新年派年柱仍是癸卯，月干由五虎遁跟著年干變成甲寅（月支仍以節）。
+
+- id: school_lunar_new_year_keep_month_stem
+  title: 農曆新年換年、但月干不跟年柱（2024-02-08 10:00 男）
+  birth: {birth_date: "2024-02-08", birth_time: "10:00", gender: male, longitude: 121.5}
+  overrides: {bazi: {year_boundary: lunar_new_year, month_stem_follows: lichun_year}}
+  expect:
+    bazi: {year: 癸卯, month: 丙寅, day: 壬寅, hour: 乙巳}
+  note: 年柱依農曆新年仍是癸卯，月干依立春年（甲）起五虎遁 → 丙寅；與上一例（月干跟年柱 → 甲寅）對照。
+
+- id: school_late_zi_next_hour_stem
+  title: 晚子時第三派：日柱不換、時干依隔日（2000-01-07 23:30 男）
+  birth: {birth_date: "2000-01-07", birth_time: "23:30", gender: male, longitude: 121.5}
+  overrides: {bazi: {late_zi: same_day_next_hour_stem}}
+  expect:
+    bazi: {year: 己卯, month: 丁丑, day: 甲子, hour: 丙子}
+  note: lunar-python 的預設（sect=2）：日柱甲子不換，時干用隔日乙的五鼠遁 → 丙子。與「換日派」乙丑丙子、「不換派」甲子甲子對照。
+
+# ---------------------------------------------------------------- 姓名學（熊崎式五格）
+# 筆畫為康熙筆畫（部首還原原形），逐字對照康熙字典部首＋其餘筆畫手算；五格依「單姓天格、單名地格加假數 1」。
+# 出生日期只是 BirthInput 必填，五格與它無關。
+
+- id: xingming_single_double
+  title: 姓名學：單姓雙名（陳美玲）
+  birth: {full_name: 陳美玲, birth_date: "1990-06-15"}
+  expect:
+    xingming: {strokes: [16, 9, 10], tian: 17, ren: 25, di: 19, wai: 11, zong: 35, sancai: 金土水}
+  note: 陳＝阜部（左阝還原為阜 8 畫）＋8＝16；玲＝玉部（王旁還原為玉 5 畫）＋5＝10。現代筆畫是 10、9 畫，算出來會差很多。
+
+- id: xingming_single_single
+  title: 姓名學：單姓單名（林立）
+  birth: {full_name: 林立, birth_date: "1990-06-15"}
+  expect:
+    xingming: {strokes: [8, 5], tian: 9, ren: 13, di: 6, wai: 2, zong: 13, sancai: 水火土}
+  note: 單姓、單名各加假數 1；外格固定為 2。
+
+- id: xingming_compound
+  title: 姓名學：複姓（歐陽娜娜）
+  birth: {full_name: 歐陽娜娜, birth_date: "2000-06-15"}
+  expect:
+    xingming: {strokes: [15, 17, 10, 10], tian: 32, ren: 27, di: 20, wai: 25, zong: 52, sancai: 木金水}
+  note: 複姓天格是兩字相加、不加假數；人格是「陽」＋「娜」。歐陽在常見複姓表裡，自動當複姓。
+
+- id: xingming_numeral
+  title: 姓名學：數字字照數值（李四）
+  birth: {full_name: 李四, birth_date: "1990-06-15"}
+  expect:
+    xingming: {strokes: [7, 4], tian: 8, ren: 11, di: 5, wai: 2, zong: 11, sancai: 金木土}
+  note: 「四」照數值算 4 畫（字形 5 畫）；流派開關 numeral_strokes 改成 shape 會變 5。
+
+- id: xingming_no_jiashu
+  title: 姓名學：不加假數派（陳美玲）
+  birth: {full_name: 陳美玲, birth_date: "1990-06-15"}
+  overrides: {xingming: {jiashu: "off"}}
+  expect:
+    xingming: {strokes: [16, 9, 10], tian: 16, ren: 25, di: 19, wai: 10, zong: 35, sancai: 土土水}
+  note: 不加假數時單姓天格就是姓的筆畫；外格＝天格＋地格－人格＝10。與第一例對照。

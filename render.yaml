@@ -1,0 +1,32 @@
+# Render Blueprint（8-1）— 放在 repo 根目錄 Render 才認得。
+# New → Blueprint → 選這個 repo；金鑰在 Environment 面板填，不要寫進這裡。
+services:
+  - type: web
+    name: ai-fortune-teller
+    runtime: python
+    pythonVersion: "3.12"
+    plan: free
+    buildCommand: pip install -e ".[llm]"
+    startCommand: python -m fortune
+    healthCheckPath: /api/health
+    envVars:
+      - key: LLM_BACKEND
+        value: deepseek        # 課程預設（docs/model-choice.md）；或 anthropic / openai / gemini
+      - key: LLM_API_KEY
+        sync: false            # 在面板手動填
+      - key: LLM_MODEL
+        value: ""              # 留空用該家預設
+      - key: RATE_LIMIT_PER_IP_PER_DAY
+        value: "10"
+      - key: DAILY_READING_CAP
+        value: "300"
+      - key: DAILY_BUDGET_USD
+        value: "5"
+      - key: MAINTENANCE
+        value: "0"
+      - key: SESSION_TTL_HOURS
+        value: "24"
+      - key: SCHOOL
+        value: default
+      - key: PERSONA
+        value: master
