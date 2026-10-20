@@ -198,6 +198,15 @@ input:focus, select:focus { outline: none; border-color: var(--gold); box-shadow
 .pillar .glyph.branch { color: var(--ink); }
 .pillar .god { font-size: 0.72rem; color: var(--cinnabar); letter-spacing: 0.05em; }
 .pillar .god.dm { color: var(--gold); }
+/* 四柱排列切換：年月日時／時日月年（台灣傳統） */
+.card h3.with-switch { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 0; }
+.pillar-order { margin-left: auto; }
+.pillar-order .seg-btn { padding: 3px 10px; font-size: 0.75rem; letter-spacing: 0.05em; }
+.pillar-order-row { display: flex; justify-content: flex-end; }
+/* 時日月年排法：大運、流年、流月由右往左（格子裡的字照常由左到右；可滑動的表一打開停在右邊的起運處） */
+.dayun-row.rtl, .liunian-row.rtl, .liuyue.rtl, .tscroll.rtl { direction: rtl; }
+.dayun-row.rtl > *, .liunian-row.rtl > *, .liuyue.rtl > *, .tscroll.rtl th, .tscroll.rtl td { direction: ltr; }
+@media print { .pillar-order { display: none !important; } }
 .pillar .elem { font-size: 0.7rem; color: var(--ink-mute); }
 .pillar .hidden { font-size: 0.72rem; color: var(--ink-soft); margin-top: 6px; line-height: 1.5; }
 .pillar .hidden span { display: block; }

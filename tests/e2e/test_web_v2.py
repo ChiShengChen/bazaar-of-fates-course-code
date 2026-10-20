@@ -99,6 +99,29 @@ def test_report_page_renders_both_systems(page, server):
     page.goto(server + "/")
 
 
+def test_pillar_order_switch(page, server):
+    """四柱排列：切到「時日月年」整排左右倒過來（四柱加列表也是）、大運由右往左，重新整理、報告頁都記得；切回來恢復。"""
+    cast(page)
+    names = lambda: page.locator("#chart-area .pillars .pname").all_inner_texts()   # noqa: E731
+    heads = lambda: page.locator("#chart-area .pillar-ext thead th").all_inner_texts()[1:]   # noqa: E731
+    # 第一步大運在最後一步的右邊＝由右往左（大運列、大運×流年表）
+    rtl = lambda sel: page.locator(sel).evaluate_all("xs => xs[0].getBoundingClientRect().left > xs[xs.length - 1].getBoundingClientRect().left")   # noqa: E731
+    assert names() == ["年柱", "月柱", "日柱", "時柱"] and heads() == ["年", "月", "日", "時"]
+    rows = ("#chart-area .dayun-row .dayun", "#chart-area .dl-table thead th", "#chart-area .liunian-row .liunian", "#chart-area .liuyue .ly")
+    assert not any(rtl(s) for s in rows)
+    page.locator("#chart-area .pillar-order button", has_text="時日月年").click()
+    assert names() == ["時柱", "日柱", "月柱", "年柱"] and heads() == ["時", "日", "月", "年"]
+    assert all(rtl(s) for s in rows)
+    page.reload(); cast(page)
+    assert names()[0] == "時柱"
+    page.goto(server + "/report.html?name=小美&birth_date=1990-06-15&birth_time=14:30&gender=female")
+    page.wait_for_selector("#report .pillars")
+    assert page.locator("#report .pillars .pname").all_inner_texts()[0] == "時柱" and rtl("#report .dayun-row .dayun")
+    page.goto(server + "/"); cast(page)
+    page.locator("#chart-area .pillar-order button", has_text="年月日時").click()
+    assert names()[0] == "年柱"
+
+
 def test_no_console_errors_v2(page):
     assert page.errors == [], page.errors  # type: ignore[attr-defined]
 

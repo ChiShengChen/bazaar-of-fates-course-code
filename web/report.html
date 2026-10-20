@@ -118,6 +118,9 @@
           return { llm: { backend: s.backend, api_key: s.api_key || '', model: s.model || '', base_url: s.backend === 'openai_compatible' ? (s.base_url || '') : '', thinking: s.thinking || 'default' } };
         } catch { return {}; }
       }
+      /** 四柱排列：沿用主頁的選擇；報告頁上切換也會記住 */
+      let pillarOrder = 'ymdh';
+      try { if (localStorage.getItem(PILLAR_ORDER_KEY) === 'hdmy') pillarOrder = 'hdmy'; } catch { /* 忽略 */ }
 
       // ---- 呼叫層（含 mock）
       class ApiError extends Error { constructor(status, body) { super((body && body.message) || `HTTP ${status}`); this.status = status; this.code = body && body.error; this.data = body || {}; } }
@@ -183,15 +186,30 @@
         const p = chart.payload || {};
         const current = currentDayun(chart);
         const strength = renderStrength(chart, { open: true });
+        let pillars = renderPillars(p, { chart, order: pillarOrder });
+        const dayunRow = renderDayunRow(p, current, pillarOrder);
+        const liunianRow = renderLiunianRow(chart, pillarOrder);
+        const sw = el('div', { class: 'no-print pillar-order-row' });
+        const setOrder = (order) => {
+          pillarOrder = order;
+          try { localStorage.setItem(PILLAR_ORDER_KEY, order); } catch { /* 忽略 */ }
+          const next = renderPillars(p, { chart, order });
+          pillars.replaceWith(next); pillars = next;
+          dayunRow.classList.toggle('rtl', order === 'hdmy');
+          liunianRow.classList.toggle('rtl', order === 'hdmy');
+          sw.replaceChildren(pillarOrderSwitch(order, setOrder));
+        };
+        sw.append(pillarOrderSwitch(pillarOrder, setOrder));
         return [
           h2('八字', chart.subject),
           el('div', { class: 'card' },
-            renderPillars(p, { chart }),
+            sw,
+            pillars,
             warningsBlock(chart.warnings),
             renderBaziKv(chart, current, strength),
             strength,
-            el('h3', { text: '大運' }), renderDayunRow(p, current),
-            el('h3', { text: '流年' }), renderLiunianRow(chart)),
+            el('h3', { text: '大運' }), dayunRow,
+            el('h3', { text: '流年' }), liunianRow),
         ];
       }
 

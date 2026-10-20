@@ -61,6 +61,7 @@ const state = {
   llm: { mode: 'site', backend: '', api_key: '', model: '', base_url: '', thinking: 'default', remember: true, backends: [], thinkingOpts: [], models: [], served: '', label: '', verified: false },
   health: null,                          // /api/health 的回應（狀態列用；自帶模式時改顯示自帶）
   healthError: null,
+  pillarOrder: 'ymdh',                   // 四柱左右順序：ymdh 年月日時、hdmy 時日月年（台灣傳統）；存在 localStorage
 };
 
 // ------------------------------------------------------------------ DOM 小工具
@@ -471,6 +472,17 @@ function loadSchoolPrefs() {
   } catch { /* 忽略 */ }
 }
 
+/** 四柱排列：主頁、合盤、報告頁共用同一個設定 */
+function loadPillarOrder() {
+  try { state.pillarOrder = localStorage.getItem(PILLAR_ORDER_KEY) === 'hdmy' ? 'hdmy' : 'ymdh'; } catch { /* 忽略 */ }
+}
+function setPillarOrder(order) {
+  state.pillarOrder = order;
+  try { localStorage.setItem(PILLAR_ORDER_KEY, order); } catch { /* 忽略 */ }
+  renderChartArea();
+  if (state.synastry) renderSynastry(state.synastry);
+}
+
 /** 流派或開關變了：命盤會不同 → 對話 session 作廢；提示重新排盤 */
 function schoolChanged() {
   state.chat.sessionId = null;
@@ -863,7 +875,7 @@ function renderChartArea() {
   const area = clear($('#chart-area'));
   const sys = state.chartSystem;
   const chart = state.charts[sys];
-  if (chart) area.append({ bazi: renderBazi, ziwei: renderZiwei, xingming: renderXingming }[sys](chart));
+  if (chart) area.append(sys === 'bazi' ? renderBazi(chart, { order: state.pillarOrder, onOrder: setPillarOrder }) : { ziwei: renderZiwei, xingming: renderXingming }[sys](chart));
   else if (sys === 'ziwei' && state.candidates) area.append(renderCandidates(state.candidates));
   else if (sys === 'xingming' && state.charts.bazi) area.append(el('p', { class: 'empty', text: state.xingmingError ? `姓名學排不出來：${state.xingmingError}` : '在出生資料填「姓名」，再按「排盤」就會排姓名學。' }));
   else area.append(el('p', { class: 'empty', text: state.charts.bazi ? '尚無此系統的命盤。' : '填好出生資料後按「排盤」。' }));
@@ -1119,7 +1131,7 @@ function renderMiniChart(chart, label) {
   return el('div', { class: 'card' },
     el('h3', {}, `${label}・${(chart.birth && chart.birth.name) || '命主'}`, schoolTitle(chart.school)),
     el('p', { class: 'subject', text: chart.subject }),
-    renderPillars(p, { mini: true, chart }),
+    renderPillars(p, { mini: true, chart, order: state.pillarOrder }),
     el('div', { class: 'kv' },
       el('div', {}, el('b', { text: '日主' }), el('span', { text: dm ? dm.value : (p.day_master || '—') })),
       el('div', {}, el('b', { text: '旺衰' }), el('span', { text: (p.strength || {}).label || '—' })),
@@ -1420,6 +1432,7 @@ async function showUsage() {
 
 function init() {
   if (MOCK) notice('mock 模式：使用 web/mock-data.js 的假資料，不會呼叫後端。', 'ok');
+  loadPillarOrder();
   loadAiStatus();
   loadSchools();
   loadLlmBackends();

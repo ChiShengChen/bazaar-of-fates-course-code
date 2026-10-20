@@ -84,12 +84,28 @@ function warningsBlock(list) {
 }
 
 // ------------------------------------------------------------------ 八字
-/** 四柱橫排；mini 用於合盤縮小版 */
 const PILLAR_KEY = { 年柱: 'year', 月柱: 'month', 日柱: 'day', 時柱: 'hour' };
-function renderPillars(payload, { mini = false, chart = null } = {}) {
-  const order = ['年柱', '月柱', '日柱', '時柱'];
+/** 四柱左右順序：ymdh＝年月日時；hdmy＝時日月年（台灣傳統排法，由右往左讀才是年月日時；大運、流年、流月也跟著由右往左）。
+ * 使用者的選擇由 app.js 存在 localStorage（PILLAR_ORDER_KEY），報告頁沿用；這裡只照傳進來的值排。 */
+const PILLAR_ORDERS = { ymdh: ['年柱', '月柱', '日柱', '時柱'], hdmy: ['時柱', '日柱', '月柱', '年柱'] };
+const PILLAR_ORDER_KEY = 'bof.pillarOrder';
+const pillarNames = (order) => PILLAR_ORDERS[order] || PILLAR_ORDERS.ymdh;
+
+/** 四柱排列切換鈕；onChange 收到 'ymdh' 或 'hdmy'。匯出 PNG、列印時不出現 */
+function pillarOrderSwitch(order, onChange) {
+  const btn = (key, text, title) => el('button', {
+    type: 'button', class: `seg-btn${key === order ? ' active' : ''}`, 'aria-pressed': String(key === order), title, text,
+    onclick: () => { if (key !== order) onChange(key); },
+  });
+  return el('span', { class: 'seg pillar-order', role: 'group', 'aria-label': '四柱排列', 'data-html2canvas-ignore': 'true' },
+    btn('ymdh', '年月日時', '由左到右：年柱、月柱、日柱、時柱'),
+    btn('hdmy', '時日月年', '台灣傳統排法：四柱由左到右是時柱、日柱、月柱、年柱，大運、流年、流月也由右往左排'));
+}
+
+/** 四柱橫排；mini 用於合盤縮小版；order 見 PILLAR_ORDERS */
+function renderPillars(payload, { mini = false, chart = null, order = 'ymdh' } = {}) {
   const byName = Object.fromEntries((payload.pillars || []).map((p) => [p.name, p]));
-  return el('div', { class: 'pillars' }, order.map((name) => {
+  return el('div', { class: 'pillars' }, pillarNames(order).map((name) => {
     const p = byName[name];
     if (!p) return el('div', { class: 'pillar missing' }, el('div', { class: 'pname', text: name }), el('div', { class: 'glyph', text: '資料不足' }), !mini && el('div', { class: 'elem', text: '時辰不明' }));
     const isDay = name === '日柱';
@@ -195,21 +211,21 @@ function renderStrength(chart, { open = false } = {}) {
     el('div', { class: 'strength-body' }, blocks));
 }
 
-/** 大運一列（最多 8 步） */
-function renderDayunRow(p, current) {
+/** 大運一列（最多 8 步）；order 'hdmy' 時由右往左排（用版面方向，手機折成兩排也照順序） */
+function renderDayunRow(p, current, order = 'ymdh') {
   return p.dayun && p.dayun.length
-    ? el('div', { class: 'dayun-row' }, p.dayun.slice(0, 8).map((d) => el('div', { class: `dayun${d === current ? ' current' : ''}` },
+    ? el('div', { class: `dayun-row${order === 'hdmy' ? ' rtl' : ''}` }, p.dayun.slice(0, 8).map((d) => el('div', { class: `dayun${d === current ? ' current' : ''}` },
       el('span', { class: 'gz', text: d.gz }),
       `${Math.round(d.start_age)}歲`, el('br'), `${d.start_year}`,
       d === current && el('div', { text: '目前' }))))
     : el('p', { class: 'hint', text: '資料不足（性別未填，無法定大運方向）' });
 }
 
-/** 流年三格（bazi.liunian.YYYY 事實） */
-function renderLiunianRow(chart) {
+/** 流年三格（bazi.liunian.YYYY 事實）；order 'hdmy' 時由右往左排 */
+function renderLiunianRow(chart, order = 'ymdh') {
   const liunian = chart.facts.filter((f) => /^bazi\.liunian\.\d{4}$/.test(f.id)).slice(0, 3);
   const currentYear = (chart.facts.find((f) => f.id === 'bazi.liunian.current') || {}).value;
-  return el('div', { class: 'liunian-row' }, liunian.map((f) => {
+  return el('div', { class: `liunian-row${order === 'hdmy' ? ' rtl' : ''}` }, liunian.map((f) => {
     const year = f.id.slice(-4);
     const [gz, gods] = String(f.value).split('・');
     return el('div', { class: `liunian${gz === currentYear ? ' current' : ''}` },
@@ -219,22 +235,23 @@ function renderLiunianRow(chart) {
   }));
 }
 
-function renderBazi(chart) {
+/** 八字卡片；有 onOrder 就在標題旁放四柱排列切換鈕 */
+function renderBazi(chart, { order = 'ymdh', onOrder = null } = {}) {
   const p = chart.payload || {};
   const current = currentDayun(chart);
   const strengthBlock = renderStrength(chart);
   return el('div', { class: 'card' },
-    el('h3', {}, '八字命盤', schoolTitle(chart.school)),
+    el('h3', { class: onOrder ? 'with-switch' : null }, '八字命盤', schoolTitle(chart.school), onOrder && pillarOrderSwitch(order, onOrder)),
     el('p', { class: 'subject', text: chart.subject }),
-    renderPillars(p, { chart }),
+    renderPillars(p, { chart, order }),
     warningsBlock(chart.warnings),
     renderBaziKv(chart, current, strengthBlock),
     strengthBlock,
     el('h3', { text: '大運' }),
-    renderDayunRow(p, current),
+    renderDayunRow(p, current, order),
     el('h3', { text: '流年' }),
-    renderLiunianRow(chart),
-    renderBaziDetail(chart, current),
+    renderLiunianRow(chart, order),
+    renderBaziDetail(chart, current, order),
   );
 }
 
@@ -267,7 +284,7 @@ function renderAlmanac(a) {
  * 每一塊都只在資料存在時才渲染，缺欄位就整塊不顯示（後端欄位可能逐步加上）。
  * 放在同一張 .card 內，匯出 PNG 與列印自然包含。
  */
-function renderBaziDetail(chart, currentDayunObj) {
+function renderBaziDetail(chart, currentDayunObj, pillarOrder = 'ymdh') {
   const p = chart.payload || {};
   const blocks = [];
   const h4 = (text) => el('h4', { class: 'dtitle', text });
@@ -286,8 +303,8 @@ function renderBaziDetail(chart, currentDayunObj) {
   row('命宮', gzNayin(p.minggong), 'bazi.minggong');
   if (basics.length) blocks.push(h4('基本'), el('div', { class: 'dkv' }, basics));
 
-  // 2. 四柱加列：納音、空亡、十二長生、神煞（四欄對應年月日時）
-  const order = ['年柱', '月柱', '日柱', '時柱'];
+  // 2. 四柱加列：納音、空亡、十二長生、神煞（四欄對應上面四柱的左右順序）
+  const order = pillarNames(pillarOrder);
   const byName = Object.fromEntries((p.pillars || []).map((x) => [x.name, x]));
   const extRows = [
     ['納音', (x) => x.nayin, 'nayin'],
@@ -322,14 +339,14 @@ function renderBaziDetail(chart, currentDayunObj) {
         el('td', { class: 'name', text: s.name || '' }), el('td', { text: s.where || '' }), el('td', { class: 'basis', text: s.basis || '' })))))));
   }
 
-  // 5. 大運 × 流年：每個大運一欄，欄下縱列 10 個流年；目前大運欄與今年高亮
+  // 5. 大運 × 流年：每個大運一欄，欄下縱列 10 個流年；目前大運欄與今年高亮；時日月年排法時大運由右往左
   const thisYear = (p.liuyue && p.liuyue.year) || (chart.cast_at ? Number(String(chart.cast_at).slice(0, 4)) : new Date().getFullYear());
   if (hasItems(p.dayun)) {
     const dayun = p.dayun.slice(0, 10);
     const rows = Math.max(0, ...dayun.map((d) => (d.liunian || []).length));
     const isCur = (d) => d === currentDayunObj;
     const age = (d) => d.start_age != null && d.end_age != null ? `${Math.round(d.start_age)}–${Math.round(d.end_age)} 歲` : (d.start_age != null ? `${Math.round(d.start_age)} 歲起` : '');
-    blocks.push(h4('大運・流年'), el('div', { class: 'tscroll' }, el('table', { class: 'dtable dl-table', style: `--cols:${dayun.length}` },
+    blocks.push(h4('大運・流年'), el('div', { class: `tscroll${pillarOrder === 'hdmy' ? ' rtl' : ''}` }, el('table', { class: 'dtable dl-table', style: `--cols:${dayun.length}` },
       el('thead', {}, el('tr', {}, dayun.map((d) => el('th', { class: isCur(d) ? 'current' : '' },
         el('div', { class: 'gz', text: d.gz || '' }),
         el('div', { class: 'age', text: age(d) }),
@@ -348,9 +365,9 @@ function renderBaziDetail(chart, currentDayunObj) {
     ), hasItems(dayun) && el('p', { class: 'scroll-hint', text: '← 表格可左右滑動 →' }));
   }
 
-  // 6. 流月
+  // 6. 流月（時日月年排法時由右往左）
   if (p.liuyue && hasItems(p.liuyue.months)) {
-    blocks.push(h4(`流月${p.liuyue.year ? `・${p.liuyue.year}` : ''}`), el('div', { class: 'liuyue' }, p.liuyue.months.map((m) => el('div', { class: 'ly' },
+    blocks.push(h4(`流月${p.liuyue.year ? `・${p.liuyue.year}` : ''}`), el('div', { class: `liuyue${pillarOrder === 'hdmy' ? ' rtl' : ''}` }, p.liuyue.months.map((m) => el('div', { class: 'ly' },
       el('div', { class: 'term', text: m.term || '' }), el('div', { class: 'gz', text: m.gz || '' }), el('div', { class: 'gods', text: godPair(m) })))));
   }
 
