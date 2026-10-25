@@ -257,6 +257,10 @@ def ziwei_chart(birth: BirthInput, *, today: date | None = None, years_ahead: in
                       note=_stars_text(life), how="寅宮起正月順數到生月，再從該宮起子時逆數到生時；宮干用五虎遁。生月以農曆為準（閏月規則可設定）。"))
     facts.append(Fact(id="ziwei.body_palace", group="基本", label="身宮", value=f"在{body.name}（{body.branch}）",
                       note=_stars_text(body)))
+    laiyin = next(p for p in c.palaces if p.is_laiyin)
+    facts.append(Fact(id="ziwei.laiyin_palace", group="基本", label="來因宮", value=f"在{laiyin.name}（{laiyin.stem}{laiyin.branch}）",
+                      note=f"生年天干{lunar['year_gz'][0]}，宮干也是{laiyin.stem}的那一宮；欽天四化／北派認為生年四化由這一宮發出，三合派一般不論",
+                      how="十二宮的宮干用五虎遁排出，宮干與生年天干相同的那一宮就是來因宮。子、丑兩宮的宮干與寅、卯重複，傳統不作來因宮，所以只在寅到亥十宮裡找。"))
     facts.append(Fact(id="ziwei.five_class", group="基本", label="五行局", value=c.five_class, how="命宮干支的納音五行：水二、木三、金四、土五、火六局。"))
     facts.append(Fact(id="ziwei.soul_star", group="基本", label="命主星", value=c.soul_star, note="依命宮地支而定，不是命宮裡的星"))
     facts.append(Fact(id="ziwei.body_star", group="基本", label="身主星", value=c.body_star, note="依生年地支而定"))
@@ -322,7 +326,7 @@ def ziwei_chart(birth: BirthInput, *, today: date | None = None, years_ahead: in
             d["adjective_stars"] = enrich["palaces"][p.branch]["adjective_stars"]
         pal_payload.append(d)
     payload = {
-        "palaces": pal_payload, "life_branch": c.life_branch, "body_branch": c.body_branch,
+        "palaces": pal_payload, "life_branch": c.life_branch, "body_branch": c.body_branch, "laiyin_branch": c.laiyin_branch,
         "five_class": c.five_class, "soul_star": c.soul_star, "body_star": c.body_star, "lunar": lunar,
         "hour_branch": c.hour_branch, "age": age,
         "luck": luck, "enrich": ({"patterns": enrich["patterns"], "source": enrich["source"]} if enrich else None),

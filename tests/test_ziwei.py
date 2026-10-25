@@ -64,6 +64,43 @@ def test_palace_stems_for_zi_chou_use_wuhu_dun_correctly(mei):
     assert stems["寅"] == "戊" and stems["亥"] == "丁" and stems["子"] == "戊" and stems["丑"] == "己"
 
 
+# 來因宮：宮干＝生年天干。十個年干各落在固定的地支（甲戌 乙酉 丙申 丁未 戊午 己巳 庚辰 辛卯 壬寅 癸亥）；
+# 辛年卯、丑同為辛干，壬年寅、子同為壬干，子丑不取
+@pytest.mark.parametrize("year,gz", [(1984, "甲戌"), (1985, "乙酉"), (1986, "丙申"), (1987, "丁未"), (1988, "戊午"),
+                                     (1989, "己巳"), (1990, "庚辰"), (1991, "辛卯"), (1992, "壬寅"), (1993, "癸亥")])
+def test_laiyin_palace_by_year_stem(year, gz):
+    z = Z.cast(BirthInput(birth_date=f"{year}-08-15", birth_time="10:00", gender="female", longitude=121.5))
+    laiyin = [p for p in z.palaces if p.is_laiyin]
+    assert len(laiyin) == 1 and laiyin[0].stem + laiyin[0].branch == gz and z.laiyin_branch == gz[1]
+    assert laiyin[0].stem == z.lunar["year_gz"][0]
+
+
+def test_laiyin_skips_zi_chou():
+    for year, skipped in ((1991, "丑"), (1992, "子")):            # 辛年丑宮、壬年子宮的宮干也等於年干，但不算
+        z = Z.cast(BirthInput(birth_date=f"{year}-08-15", birth_time="10:00", gender="male", longitude=121.5))
+        same = {p.branch for p in z.palaces if p.stem == z.lunar["year_gz"][0]}
+        assert skipped in same and not next(p for p in z.palaces if p.branch == skipped).is_laiyin
+
+
+def test_laiyin_fact_and_payload(mei):
+    c = ziwei_chart(mei)
+    f = c.fact("ziwei.laiyin_palace")
+    assert f.value == "在交友宮（庚辰）" and "子、丑" in f.how
+    assert c.payload["laiyin_branch"] == "辰"
+    assert [p["branch"] for p in c.payload["palaces"] if p["is_laiyin"]] == ["辰"]
+
+
+def test_laiyin_card_is_loaded_and_selected(mei):
+    from fortune.knowledge.store import load_cards, select_cards
+    cards = load_cards()
+    card = cards["gong.laiyin"]
+    assert card.system == "ziwei" and "來因宮" in card.keywords
+    assert {"意義", "正面", "負面", "常見組合", "出處"} <= set(card.sections) and "子、丑" in card.sections["意義"]
+    assert sum(c.system in ("bazi", "ziwei") for c in cards.values()) == 86     # 投影片 2-3、5-1 講的張數
+    picked = [c.id for c in select_cards(ziwei_chart(mei))]
+    assert "gong.laiyin" in picked and "gong.jiaoyou" in picked            # 小美的來因宮在交友宮，交友宮的卡也一起挑
+
+
 def test_five_class_when_life_palace_in_zi():
     # 1990-06-15 午時：命宮在子 → 庚年子宮為戊子 → 納音霹靂火 → 火六局
     z = Z.cast(BirthInput(birth_date="1990-06-15", birth_time="12:00", gender="female", use_true_solar_time=False))

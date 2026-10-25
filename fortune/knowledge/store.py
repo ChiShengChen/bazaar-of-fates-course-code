@@ -73,7 +73,7 @@ def get_card(card_id: str) -> Card | None:
 
 def select_cards(chart: ChartData, limit: int = 30) -> list[Card]:
     """依命盤事實的 value/note 裡出現的關鍵字，挑出這張盤用得到的卡。
-    八字：十神與旺衰；紫微：命宮／夫妻／官祿／財帛／遷移／福德的主星、吉煞、四化；姓名學：五格、數理、三才、八字配合。"""
+    八字：十神與旺衰；紫微：命宮／夫妻／官祿／財帛／遷移／福德的主星、吉煞、四化，以及來因宮；姓名學：五格、數理、三才、八字配合。"""
     cards = [c for c in load_cards().values() if c.system == chart.system]
     if chart.system == "bazi":
         text = " ".join(f.value + " " + f.note for f in chart.facts
@@ -83,10 +83,12 @@ def select_cards(chart: ChartData, limit: int = 30) -> list[Card]:
         text = " ".join(f.label + " " + f.value + " " + f.note for f in chart.facts if f.group != "筆畫")
     else:
         keys = ("ziwei.palace.命宮", "ziwei.palace.夫妻宮", "ziwei.palace.官祿宮", "ziwei.palace.財帛宮",
-                "ziwei.palace.遷移宮", "ziwei.palace.福德宮", "ziwei.daxian.current", "ziwei.body_palace")
+                "ziwei.palace.遷移宮", "ziwei.palace.福德宮", "ziwei.daxian.current", "ziwei.body_palace", "ziwei.laiyin_palace")
         text = " ".join(f.value + " " + f.note for f in chart.facts
                         if f.id in keys or f.group == "四化" or f.id.startswith("ziwei.liunian."))
         text += " 命宮 夫妻宮 官祿宮 財帛宮 遷移宮 福德宮"
+        if any(f.id == "ziwei.laiyin_palace" for f in chart.facts):
+            text += " 來因宮"                    # 來因宮落在哪一宮（例「在交友宮（庚辰）」）也一起挑進來
     hits: list[tuple[int, Card]] = []
     for c in cards:
         n = sum(text.count(k) for k in c.keywords if k)

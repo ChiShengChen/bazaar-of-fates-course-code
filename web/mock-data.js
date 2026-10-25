@@ -1214,6 +1214,14 @@ window.MOCK_DATA = {
         "note": "主星 天梁；吉星 天魁"
       },
       {
+        "id": "ziwei.laiyin_palace",
+        "group": "基本",
+        "label": "來因宮",
+        "value": "在交友宮（庚辰）",
+        "note": "生年天干庚，宮干也是庚的那一宮；欽天四化／北派認為生年四化由這一宮發出，三合派一般不論",
+        "how": "十二宮的宮干用五虎遁排出，宮干與生年天干相同的那一宮就是來因宮。子、丑兩宮的宮干與寅、卯重複，傳統不作來因宮，所以只在寅到亥十宮裡找。"
+      },
+      {
         "id": "ziwei.five_class",
         "group": "基本",
         "label": "五行局",
@@ -1391,6 +1399,7 @@ window.MOCK_DATA = {
           "other": [],
           "hua": {},
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             115,
             124
@@ -1412,6 +1421,7 @@ window.MOCK_DATA = {
           "other": [],
           "hua": {},
           "is_body": true,
+          "is_laiyin": false,
           "daxian": [
             105,
             114
@@ -1431,6 +1441,7 @@ window.MOCK_DATA = {
           "other": [],
           "hua": {},
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             95,
             104
@@ -1456,6 +1467,7 @@ window.MOCK_DATA = {
             "天同": "化忌"
           },
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             85,
             94
@@ -1479,6 +1491,7 @@ window.MOCK_DATA = {
             "武曲": "化權"
           },
           "is_body": false,
+          "is_laiyin": true,
           "daxian": [
             75,
             84
@@ -1500,6 +1513,7 @@ window.MOCK_DATA = {
             "太陽": "化祿"
           },
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             65,
             74
@@ -1523,6 +1537,7 @@ window.MOCK_DATA = {
           "other": [],
           "hua": {},
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             55,
             64
@@ -1546,6 +1561,7 @@ window.MOCK_DATA = {
           "other": [],
           "hua": {},
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             45,
             54
@@ -1573,6 +1589,7 @@ window.MOCK_DATA = {
           ],
           "hua": {},
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             35,
             44
@@ -1598,6 +1615,7 @@ window.MOCK_DATA = {
             "太陰": "化科"
           },
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             25,
             34
@@ -1619,6 +1637,7 @@ window.MOCK_DATA = {
           "other": [],
           "hua": {},
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             15,
             24
@@ -1640,6 +1659,7 @@ window.MOCK_DATA = {
           "other": [],
           "hua": {},
           "is_body": false,
+          "is_laiyin": false,
           "daxian": [
             5,
             14
@@ -1649,6 +1669,7 @@ window.MOCK_DATA = {
       ],
       "life_branch": "亥",
       "body_branch": "丑",
+      "laiyin_branch": "辰",
       "five_class": "土五局",
       "soul_star": "巨門",
       "body_star": "火星",

@@ -440,9 +440,12 @@ function renderPalace(p, lifeBranch, chart, { compact = false } = {}) {
       p.boshi && el('span', { class: 'ptag bs', text: p.boshi, title: '博士十二神' })),
     el('div', { class: 'p-foot' },
       el('span', { text: p.daxian ? `${p.daxian[0]}–${p.daxian[1]}` : '' }),
-      p.is_body && el('span', { class: 'body-mark', text: '身' })),
+      (p.is_body || p.is_laiyin) && el('span', { class: 'p-marks' },
+        p.is_laiyin && el('span', { class: 'laiyin-mark', text: '來因', title: LAIYIN_TITLE }),
+        p.is_body && el('span', { class: 'body-mark', text: '身' }))),
   );
 }
+const LAIYIN_TITLE = '來因宮：宮干與生年天干相同的一宮（欽天四化／北派的說法；子、丑兩宮不取）';
 
 /** x-iztro 格局膠囊：名稱＋宮位；破格加刪除線 */
 function renderPatterns(enrich) {
@@ -555,6 +558,7 @@ function renderZiweiGrid(chart, { compact = false } = {}) {
   const p = chart.payload || {};
   const lunar = p.lunar || {};
   const bodyPalace = (p.palaces || []).find((x) => x.is_body);
+  const laiyin = (p.palaces || []).find((x) => x.is_laiyin);
   const cur = chart.facts.find((f) => f.id === 'ziwei.daxian.current');
   const row = (...pairs) => el('div', { class: 'row' }, pairs.filter(([, v]) => v != null && v !== '').map(([k, v, id]) => el('span', {}, el('b', { text: k }, id && schoolMark(chart, id)), v)));
   const huaAlts = huaAltTitles(chart);
@@ -567,6 +571,7 @@ function renderZiweiGrid(chart, { compact = false } = {}) {
       row(['五行局', p.five_class, 'ziwei.five_class'], ['虛歲', p.age]),
       row(['命主', p.soul_star, 'ziwei.soul_star'], ['身主', p.body_star, 'ziwei.body_star']),
       row(['命宮', p.life_branch, 'ziwei.life_palace'], ['身宮', bodyPalace ? `${bodyPalace.name}（${p.body_branch}）` : p.body_branch, 'ziwei.body_palace']),
+      laiyin && row(['來因宮', `${laiyin.name}（${laiyin.gz || laiyin.stem + laiyin.branch}）`, 'ziwei.laiyin_palace']),
       cur && row(['目前大限', cur.value, 'ziwei.daxian.current']),
       el('div', { class: 'hint' }, huaTag('祿'), ' ', huaTag('權'), ' ', huaTag('科'), ' ', huaTag('忌'), ' 生年四化', schoolMark(chart, ['ziwei.hua.化祿', 'ziwei.hua.化權', 'ziwei.hua.化科', 'ziwei.hua.化忌']), '・', el('span', { class: 'lucky', text: '吉星' }), '・', el('span', { class: 'unlucky', text: '煞星' })),
       renderPatterns(p.enrich),

@@ -37,7 +37,7 @@ source: 示範知識庫・課程編寫（綜合《子平真詮》《滴天髓》
 |---|---|---|
 | 十神 | `shishen.` | `shishen.bijian` 比肩、`jiecai` 劫財、`shishen` 食神、`shangguan` 傷官、`piancai` 偏財、`zhengcai` 正財、`qisha` 七殺、`zhengguan` 正官、`pianyin` 偏印、`zhengyin` 正印 |
 | 旺衰 | `wangshuai.` | `wangshuai.shenqiang` 身強、`wangshuai.shenruo` 身弱 |
-| 十二宮 | `gong.` | `gong.ming` 命宮、`xiongdi` 兄弟宮、`fuqi` 夫妻宮、`zinv` 子女宮、`caibo` 財帛宮、`jie` 疾厄宮、`qianyi` 遷移宮、`jiaoyou` 交友宮、`guanlu` 官祿宮、`tianzhai` 田宅宮、`fude` 福德宮、`fumu` 父母宮 |
+| 十二宮、來因宮 | `gong.` | `gong.ming` 命宮、`xiongdi` 兄弟宮、`fuqi` 夫妻宮、`zinv` 子女宮、`caibo` 財帛宮、`jie` 疾厄宮、`qianyi` 遷移宮、`jiaoyou` 交友宮、`guanlu` 官祿宮、`tianzhai` 田宅宮、`fude` 福德宮、`fumu` 父母宮；`laiyin` 來因宮（欽天四化／北派才用） |
 | 十四主星 | `star.` | `star.ziwei` 紫微、`tianji` 天機、`taiyang` 太陽、`wuqu` 武曲、`tiantong` 天同、`lianzhen` 廉貞、`tianfu` 天府、`taiyin` 太陰、`tanlang` 貪狼、`jumen` 巨門、`tianxiang` 天相、`tianliang` 天梁、`qisha` 七殺、`pojun` 破軍 |
 | 六吉 | `star.` | `star.zuofu` 左輔、`youbi` 右弼、`wenchang` 文昌、`wenqu` 文曲、`tiankui` 天魁、`tianyue` 天鉞 |
 | 六煞 | `star.` | `star.qingyang` 擎羊、`tuoluo` 陀羅、`huoxing` 火星、`lingxing` 鈴星、`dikong` 地空、`dijie` 地劫 |

@@ -72,13 +72,14 @@ class Palace:
     other: list[str] = field(default_factory=list)
     hua: dict[str, str] = field(default_factory=dict)     # 星 → 化祿/權/科/忌
     is_body: bool = False
+    is_laiyin: bool = False                               # 來因宮：宮干＝生年天干（子、丑不算）
     daxian: tuple[int, int] | None = None                 # (起歲, 迄歲)
 
     def as_dict(self) -> dict:
         return {
             "name": self.name, "branch": self.branch, "stem": self.stem, "gz": self.stem + self.branch,
             "major": self.major, "lucky": self.lucky, "unlucky": self.unlucky, "other": self.other,
-            "hua": self.hua, "is_body": self.is_body,
+            "hua": self.hua, "is_body": self.is_body, "is_laiyin": self.is_laiyin,
             "daxian": list(self.daxian) if self.daxian else None,
             "is_empty": not self.major,
         }
@@ -95,6 +96,7 @@ class ZiweiChart:
     soul_star: str               # 命主
     body_star: str               # 身主
     palaces: list[Palace]        # 依地支 子…亥 排列
+    laiyin_branch: str = ""      # 來因宮的地支
     warnings: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
     school: object = None
@@ -194,6 +196,9 @@ def cast(birth: BirthInput, *, leap_rule: str | None = None, today: date | None 
     body_b = (month_palace + hb) % 12
     yin_stem = (2 + 2 * (ys % 5)) % 10                      # 五虎遁：寅宮天干
     stem_at = lambda b: STEMS[(yin_stem + (b - 2) % 12) % 10]    # noqa: E731 — 先對 12 取模：子、丑兩宮在寅之前
+    # 來因宮（欽天四化／飛星派）：宮干等於生年天干的那一宮。寅到亥十宮的天干剛好十個不重複，
+    # 子、丑兩宮的天干與寅、卯重複，傳統不取，所以只在寅到亥裡找，答案唯一。
+    laiyin_b = next(b for b in range(2, 12) if stem_at(b) == year_stem)
     elem = nayin_element(STEMS.index(stem_at(life_b)), life_b)
     ju = _JU[elem]
     five_class = f"{elem}{'二三四五六'[ju - 2]}局"
@@ -232,7 +237,7 @@ def cast(birth: BirthInput, *, leap_rule: str | None = None, today: date | None 
     palaces: list[Palace] = []
     for b in range(12):
         name = PALACE_NAMES[(life_b - b) % 12]
-        p = Palace(name=name, branch=BRANCHES[b], stem=stem_at(b), is_body=(b == body_b))
+        p = Palace(name=name, branch=BRANCHES[b], stem=stem_at(b), is_body=(b == body_b), is_laiyin=(b == laiyin_b))
         for s, sb in pos.items():
             if sb != b:
                 continue
@@ -264,7 +269,7 @@ def cast(birth: BirthInput, *, leap_rule: str | None = None, today: date | None 
     return ZiweiChart(
         lunar=lunar, hour_branch=BRANCHES[hb], life_branch=BRANCHES[life_b], body_branch=BRANCHES[body_b],
         five_class=five_class, ju=ju, soul_star=_MING_ZHU[life_b], body_star=_SHEN_ZHU[yb],
-        palaces=palaces, warnings=warnings, missing=missing, school=school,
+        palaces=palaces, laiyin_branch=BRANCHES[laiyin_b], warnings=warnings, missing=missing, school=school,
     )
 
 

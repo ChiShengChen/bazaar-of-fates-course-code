@@ -325,6 +325,8 @@ input:focus, select:focus { outline: none; border-color: var(--gold); box-shadow
 .hua-科 { color: #0f1f33; background: #7fb3e6; }
 .hua-忌 { color: #fff; background: var(--cinnabar); }
 .body-mark { color: var(--cinnabar); border: 1px solid var(--cinnabar); border-radius: 3px; padding: 0 3px; font-size: 0.62rem; }
+.laiyin-mark { color: var(--gold); border: 1px solid var(--gold); border-radius: 3px; padding: 0 3px; font-size: 0.62rem; cursor: help; }
+.palace .p-marks { display: inline-flex; gap: 3px; }
 .ziwei-center { grid-column: 2 / 4; grid-row: 2 / 4; background: var(--panel-solid); padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 0.82rem; text-align: center; }
 .ziwei-center .who { font-family: var(--serif); color: var(--gold); font-size: 1.05rem; }
 .ziwei-center .row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; color: var(--ink-soft); }

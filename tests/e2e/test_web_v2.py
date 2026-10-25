@@ -58,6 +58,9 @@ def test_ziwei_luck_panel_and_brightness(page):
     txt = area.inner_text()
     assert "大限" in txt and "流年" in txt and ("流祿" in txt or "太歲" in txt)
     assert "長生" in txt or "沐浴" in txt                                 # 十二長生標籤
+    marks = area.locator(".palace .laiyin-mark")                          # 來因宮：庚年在辰，小美的交友宮
+    assert marks.count() == 1 and "交友宮" in marks.locator("xpath=ancestor::div[contains(@class,'palace')][1]").inner_text()
+    assert "來因宮" in area.locator(".ziwei-center").inner_text()
 
 
 def test_consistency_button(page):
