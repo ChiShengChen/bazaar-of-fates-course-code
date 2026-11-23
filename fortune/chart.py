@@ -452,7 +452,7 @@ def _school_info(school, system: str | None = None) -> dict[str, Any]:
 # 哪些開關會影響哪個系統的盤；換一派重排一次、把值不同的事實標出來
 _SWITCHES = {
     "bazi": [("bazi", k) for k in ("year_boundary", "month_stem_follows", "late_zi", "true_solar_time", "minggong_month", "yangren_yin_stems", "xusui_boundary", "chenggu_year")],
-    "ziwei": [("ziwei", k) for k in ("leap_month", "sihua_variant", "hour_source", "late_zi", "tianma_basis")] + [("bazi", "xusui_boundary")],
+    "ziwei": [("ziwei", k) for k in ("leap_month", "sihua_variant", "hour_source", "late_zi", "tianma_basis", "kuiyue_geng")] + [("bazi", "xusui_boundary")],
     "xingming": [("xingming", k) for k in ("stroke_basis", "numeral_strokes", "jiashu")] + [("bazi", "strength_method")],
 }
 

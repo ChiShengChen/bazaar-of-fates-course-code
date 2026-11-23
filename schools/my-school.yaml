@@ -1,8 +1,8 @@
 # 我的流派（10-2 參考答案）— 從 default.yaml 複製，改兩個開關。學員請把 source 換成自己的書或老師。
 name: my-school
 title: 我的流派
-source: 示範：庚壬年四化取「天府化科」那一版、天馬依生月地支起（請換成你的出處：書名頁碼或老師）
-description: 以課程預設為底，紫微改兩處：庚壬年生年化科給天府、天馬依月支；其餘同課程預設。
+source: 示範：庚壬年四化取「天府化科」那一版、天馬依生月地支起、庚年魁鉞用「庚辛逢馬虎」（請換成你的出處：書名頁碼或老師）
+description: 以課程預設為底，紫微改三處：庚壬年生年化科給天府、天馬依月支、庚年天魁天鉞在午寅；其餘同課程預設。
 bazi:
   year_boundary: lichun
   month_stem_follows: year_pillar
@@ -19,6 +19,7 @@ ziwei:
   hour_source: true_solar
   late_zi: same_day
   tianma_basis: month_branch
+  kuiyue_geng: mahu            # 10-2 進階：新開關，庚年魁鉞取「庚辛逢馬虎」
 xingming:
   stroke_basis: kangxi
   numeral_strokes: value

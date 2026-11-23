@@ -47,6 +47,7 @@ class ZiweiRules(BaseModel):
     hour_source: Literal["true_solar", "clock"] = "true_solar"             # 時支用真太陽時｜手錶時間
     late_zi: Literal["same_day", "next_day"] = "same_day"                  # 晚子時的農曆日：不換｜換隔日
     tianma_basis: Literal["year_branch", "month_branch"] = "year_branch"   # 天馬以年支｜月支起
+    kuiyue_geng: Literal["niuyang", "mahu"] = "niuyang"                    # 庚年天魁天鉞：甲戊庚牛羊（魁丑鉞未）｜庚辛逢馬虎（同辛年，魁午鉞寅）
 
 
 class XingmingRules(BaseModel):
@@ -101,6 +102,7 @@ OPTION_LABELS: dict[str, dict[str, dict[str, str]]] = {
         "hour_source": {"true_solar": "時支用真太陽時", "clock": "時支用手錶時間"},
         "late_zi": {"same_day": "晚子時農曆日不換", "next_day": "晚子時農曆日算隔日"},
         "tianma_basis": {"year_branch": "天馬以年支起", "month_branch": "天馬以月支起"},
+        "kuiyue_geng": {"niuyang": "庚年魁鉞：甲戊庚牛羊（魁丑鉞未）", "mahu": "庚年魁鉞：庚辛逢馬虎（魁午鉞寅）"},
     },
     "xingming": {
         "stroke_basis": {"kangxi": "康熙筆畫（部首還原：氵算水 4、艹算艸 6）", "modern": "現代筆畫（照字形數）"},

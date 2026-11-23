@@ -26,6 +26,7 @@
 | 紫微 | `hour_source` | `true_solar`／`clock` | 時支 → 命宮身宮、昌曲、火鈴、空劫 |
 | 紫微 | `late_zi` | `same_day`／`next_day` | 晚子時的農曆日 → 紫微星位 |
 | 紫微 | `tianma_basis` | `year_branch`／`month_branch` | 天馬 |
+| 紫微 | `kuiyue_geng` | `niuyang`（甲戊庚牛羊：魁丑鉞未）／`mahu`（庚辛逢馬虎：庚年同辛年，魁午鉞寅） | 庚年生人的天魁、天鉞（10-2 進階題新增） |
 
 程式位置：`fortune/school.py`（schema 與載入）、分支點在 `fortune/bazi/engine.py`、`fortune/ziwei/engine.py`、`fortune/bazi/extras.py`、`fortune/chart.py`。
 

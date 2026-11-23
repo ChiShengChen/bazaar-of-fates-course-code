@@ -217,6 +217,8 @@ def cast(birth: BirthInput, *, leap_rule: str | None = None, today: date | None 
     pos.update({"左輔": (4 + m - 1) % 12, "右弼": (10 - (m - 1)) % 12,
                 "文昌": (10 - hb) % 12, "文曲": (4 + hb) % 12})
     kui, yue = _KUI_YUE[year_stem]
+    if year_stem == "庚" and rules.kuiyue_geng == "mahu":
+        kui, yue = _KUI_YUE["辛"]                       # 庚辛逢馬虎：庚年跟辛年一樣，魁午鉞寅
     pos.update({"天魁": kui, "天鉞": yue})
     lu = _LUCUN[year_stem]
     pos.update({"祿存": lu, "擎羊": (lu + 1) % 12, "陀羅": (lu - 1) % 12})
