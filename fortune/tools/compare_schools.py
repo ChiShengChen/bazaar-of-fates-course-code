@@ -3,7 +3,10 @@
 用法：
   python -m fortune.tools.compare_schools 1990-06-15 14:30 女 --schools default clock-time zhongqi-tianfu
   python -m fortune.tools.compare_schools 2000-01-07 23:30 男 --schools default clock-time --system bazi
+  python -m fortune.tools.compare_schools 1990-06-15 14:30 女 --system ziwei --schools default my-school --detail
 只印出值不同的事實；全部相同就說「兩派在這張盤上排出來一樣」。
+--detail：連事實的備註一起比（紫微各宮的吉星、煞星記在備註裡，例如天魁天鉞換宮）；格數照值與備註算。
+參數順序不拘：--schools 後面接到下一個 -- 開頭的參數為止。
 """
 
 from __future__ import annotations
@@ -17,11 +20,19 @@ def main(argv: list[str] | None = None) -> int:
         print(__doc__)
         return 1
     i = argv.index("--schools")
-    names = [a for a in argv[i + 1:] if not a.startswith("--")]
-    rest = argv[:i]
+    names = []
+    for a in argv[i + 1:]:
+        if a.startswith("--"):
+            break
+        names.append(a)
     systems = ["bazi", "ziwei"]
     if "--system" in argv:
         systems = [argv[argv.index("--system") + 1]]
+    detail = "--detail" in argv
+    skip = set(range(i, i + 1 + len(names)))
+    if "--system" in argv:
+        skip |= {argv.index("--system"), argv.index("--system") + 1}
+    rest = [a for k, a in enumerate(argv) if k not in skip and a != "--detail"]
     from fortune.chart import cast
     from fortune.cli import _birth
     from fortune.school import load_school
@@ -48,7 +59,8 @@ def main(argv: list[str] | None = None) -> int:
         base = charts[names[0]]
         rows = []
         for f in base.facts:
-            vals = [charts[n].fact(f.id).value if charts[n].fact(f.id) else "—" for n in names]
+            facts = [charts[n].fact(f.id) for n in names]
+            vals = [(x.value + (f"（{x.note}）" if detail and x.note else "")) if x else "—" for x in facts]
             if len(set(vals)) > 1:
                 rows.append((f.id, f.label, vals))
         print(f"## {base.system_zh}：{len(rows)} 格不同")

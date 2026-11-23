@@ -96,3 +96,15 @@ def test_month_stem_follows_switch():
     default = cast("bazi", b, today=TODAY, with_alternatives=False)
     same = cast("bazi", b, today=TODAY, overrides={"bazi": {"month_stem_follows": "lichun_year"}}, with_alternatives=False)
     assert default.fact("bazi.pillar.month").value == same.fact("bazi.pillar.month").value == "丙寅"
+
+
+def test_compare_schools_argument_order_and_detail(capsys):
+    from fortune.tools.compare_schools import main
+    # --system 寫在 --schools 前面或後面都行（原本寫在後面，ziwei／bazi 會被當成流派名稱）
+    for argv in (["2000-01-07", "23:30", "男", "--schools", "default", "clock-time", "--system", "bazi"],
+                 ["2000-01-07", "23:30", "男", "--system", "bazi", "--schools", "default", "clock-time"]):
+        assert main(argv) == 0
+        assert "## 八字：21 格不同" in capsys.readouterr().out
+    # --detail 連備註一起比：手錶時間派跟預設在這張盤上值相同，備註也相同時照樣是 0 格
+    assert main(["1990-06-15", "14:30", "女", "--system", "ziwei", "--schools", "default", "clock-time", "--detail"]) == 0
+    assert "紫微斗數：" in capsys.readouterr().out
