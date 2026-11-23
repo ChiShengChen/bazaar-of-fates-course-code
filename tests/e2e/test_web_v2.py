@@ -34,6 +34,40 @@ def test_geo_autofill_with_taiwan_dst(page):
     assert "真太陽時" in page.locator("#chart-area").inner_text()
 
 
+def hour_pillar(page) -> str:
+    """時柱那一格的干支（畫面上天干、地支分兩行）。"""
+    return "".join(page.locator("#chart-area .pillars .pillar", has_text="時柱").first.inner_text().split())
+
+
+def test_dst_checkbox_under_birthplace(page):
+    # 台北 1975 夏天：出生地下面出現勾選框（預設勾、時區 9）；取消＝證件時間已是標準時（時區 8）
+    page.locator("#birth-panel").evaluate("el => el.open = true")
+    fill_birth(page, d="1975-07-15", t="15:30", g="male", place="台北")
+    f = page.locator("#birth-form")
+    box, tz = f.locator("[name=dst]"), f.locator("[name=tz_offset_hours]")
+    assert f.locator(".dst-check").is_visible() and box.is_checked() and tz.input_value() == "9"
+    box.uncheck(); assert tz.input_value() == "8"
+    box.check(); assert tz.input_value() == "9"
+
+    # 手錶時間派（不換算真太陽時）：勾著 → 先扣回標準時 14:30 → 未時；不勾 → 15:30 照讀 → 申時
+    page.locator("#school-panel").evaluate("el => el.open = true")
+    page.locator("#school-panel select").first.select_option("clock-time"); page.wait_for_timeout(300)
+    page.locator("#birth-panel").evaluate("el => el.open = true")
+    page.click("#cast-btn"); page.wait_for_timeout(1500)
+    assert "丁未" in hour_pillar(page)
+    page.locator("#birth-panel").evaluate("el => el.open = true")
+    box.uncheck(); page.click("#cast-btn"); page.wait_for_timeout(1500)
+    assert "戊申" in hour_pillar(page)
+    page.locator("#school-panel select").first.select_option("default"); page.wait_for_timeout(300)
+
+    # 自己改時區：以填的為準，勾選框收起來；換一個不是日光節約年份的日期再查，也不會出現
+    page.locator("#birth-panel").evaluate("el => el.open = true")
+    box.check(); tz.fill("9")
+    assert not f.locator(".dst-check").is_visible()
+    fill_birth(page, d="1990-06-15", t="14:30", g="female", place="台北")
+    assert not f.locator(".dst-check").is_visible() and tz.input_value() == "8"
+
+
 def test_strength_v2_panel_and_almanac(page):
     cast(page, place="台北")
     area = page.locator("#chart-area")

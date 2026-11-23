@@ -177,7 +177,7 @@
       function renderHead(birth, charts) {
         const chart = charts.bazi || charts.ziwei || {};
         const b = chart.birth || birth;                      // 後端回的 birth.place 可能帶日光節約時間說明
-        const tz = b.tz_offset_hours != null ? `UTC${b.tz_offset_hours >= 0 ? '+' : ''}${b.tz_offset_hours}` : '';
+        const tz = b.tz_offset_hours != null ? `UTC${b.tz_offset_hours >= 0 ? '+' : ''}${b.tz_offset_hours}${b.dst_hours ? `（含日光節約 ${b.dst_hours} 小時）` : ''}` : '';
         return el('div', { class: 'report-head' },
           el('h1', {}, '☯ 命運市集', el('small', { text: '命理報告' })),
           el('p', { class: 'who', text: describe(b) }),

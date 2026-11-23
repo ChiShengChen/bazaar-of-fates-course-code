@@ -37,10 +37,13 @@
             <option value="female">女</option>
           </select>
         </label>
-        <label>出生地
-          <input name="place" list="city-list" class="place-input" placeholder="例：台北、Taipei（可自填）" autocomplete="off">
-          <small class="hint geo-note" aria-live="polite"></small>
-        </label>
+        <div class="place-field">
+          <label>出生地
+            <input name="place" list="city-list" class="place-input" placeholder="例：台北、Taipei（可自填）" autocomplete="off">
+            <small class="hint geo-note" aria-live="polite"></small>
+          </label>
+          <label class="dst-check" hidden><input type="checkbox" name="dst"><span>證件時間是當時的日光節約時間<small>依出生日期自動判斷；證件已換算成標準時就取消</small></span></label>
+        </div>
         <label class="lng-field">經度 <input name="longitude" type="number" step="0.01" min="-180" max="180" placeholder="填出生地自動補"></label>
         <label>時區 <input name="tz_offset_hours" type="number" step="0.5" min="-12" max="14" value="8"><small class="hint">台灣 +8；日光節約時間年份會自動 +1</small></label>
         <div class="form-actions">
@@ -179,10 +182,13 @@
               <option value="female">女</option>
             </select>
           </label>
-          <label>出生地
-            <input name="place" list="city-list" class="place-input" placeholder="例：台中、Taichung（可自填）" autocomplete="off">
-            <small class="hint geo-note" aria-live="polite"></small>
-          </label>
+          <div class="place-field">
+            <label>出生地
+              <input name="place" list="city-list" class="place-input" placeholder="例：台中、Taichung（可自填）" autocomplete="off">
+              <small class="hint geo-note" aria-live="polite"></small>
+            </label>
+            <label class="dst-check" hidden><input type="checkbox" name="dst"><span>證件時間是當時的日光節約時間<small>依出生日期自動判斷；證件已換算成標準時就取消</small></span></label>
+          </div>
           <label class="lng-field">經度 <input name="longitude" type="number" step="0.01" min="-180" max="180" placeholder="填出生地自動補"></label>
           <label>時區 <input name="tz_offset_hours" type="number" step="0.5" min="-12" max="14" value="8"></label>
           <div class="form-actions">

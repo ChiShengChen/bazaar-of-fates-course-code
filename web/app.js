@@ -336,18 +336,18 @@ async function geoLookup(form) {
   const note = $('.geo-note', form);
   const place = (input.value || '').trim();
   const setNote = (text, cls) => { if (!note) return; note.textContent = text || ''; note.className = `hint geo-note${cls ? ' ' + cls : ''}`; };
-  if (!place) { setNote(''); return; }
+  if (!place) { setNote(''); showDst(form, false); return; }
   const date = form.elements.birth_date.value;
   setNote('查詢中…');
   const seq = (form._geoSeq = (form._geoSeq || 0) + 1);
   try {
     const g = await request(`${API.geo}?place=${encodeURIComponent(place)}${date ? '&date=' + encodeURIComponent(date) : ''}`);
     if (seq !== form._geoSeq) return;                 // 使用者又改了，丟掉舊結果
-    if (!g || !g.name) { setNote((g && g.message) || `查不到「${place}」，請手動填經度與時區`, 'miss'); return; }
+    if (!g || !g.name) { setNote((g && g.message) || `查不到「${place}」，請手動填經度與時區`, 'miss'); showDst(form, false); return; }
     if (g.longitude != null) form.elements.longitude.value = g.longitude;
     if (g.tz_offset_hours != null) form.elements.tz_offset_hours.value = g.tz_offset_hours;
-    // 時區裡含日光節約時間：記下這個時區值；送出時時區沒被手動改過，才告訴後端扣回標準時
-    form.dataset.dstTz = g.dst && g.tz_offset_hours != null ? String(Number(g.tz_offset_hours)) : '';
+    // 日光節約時間的年份：出生地下面出現勾選框（預設勾）；取消＝證件時間已是標準時，時區退回 +8
+    showDst(form, !!g.dst && g.tz_offset_hours != null, Number(g.tz_offset_hours) - 1);
     const tz = g.tz_offset_hours != null ? `UTC${g.tz_offset_hours >= 0 ? '+' : ''}${g.tz_offset_hours}` : '';
     setNote(g.note || `${g.name}${g.longitude != null ? '・經度 ' + g.longitude : ''}${tz ? '・' + tz : ''}`, g.dst ? 'dst' : 'ok');
     // 查到了就把焦點移開：datalist 的建議選單還開著時，下一次點「排盤」會先被拿去關選單
@@ -358,9 +358,29 @@ async function geoLookup(form) {
   }
 }
 
+/** 出生地下方的日光節約勾選框：on＝出現並勾選，base＝標準時的時區（台灣 8） */
+function showDst(form, on, base) {
+  const box = form.elements.dst;
+  if (!box) return;
+  const label = box.closest('.dst-check');
+  label.hidden = !on;
+  box.checked = on;
+  label.dataset.base = on ? String(base) : '';
+}
+
 function setupPlaceField(form) {
   const input = form.elements.place;
   if (!input) return;
+  const box = form.elements.dst;
+  if (box) {
+    // 勾／不勾：時區在「標準時＋1」與「標準時」之間切換，跟送出去的日光節約小時數一致
+    box.addEventListener('change', () => {
+      const base = Number(box.closest('.dst-check').dataset.base);
+      if (Number.isFinite(base)) form.elements.tz_offset_hours.value = box.checked ? base + 1 : base;
+    });
+    // 手動改時區：以使用者填的為準，收起勾選框
+    form.elements.tz_offset_hours.addEventListener('input', () => showDst(form, false));
+  }
   input.addEventListener('change', () => geoLookup(form));
   // 日期變了也重查：台灣日光節約時間依出生日而定
   form.elements.birth_date.addEventListener('change', () => { if ((input.value || '').trim()) geoLookup(form); });
@@ -371,7 +391,8 @@ function readBirth(form) {
   const fd = new FormData(form);
   // 真太陽時不在這裡指定：交給流派設定（課程預設開、手錶時間派關）
   const birth = { birth_date: fd.get('birth_date'), tz_offset_hours: Number(fd.get('tz_offset_hours') || 8) };
-  if (form.dataset.dstTz && String(birth.tz_offset_hours) === form.dataset.dstTz) birth.dst_hours = 1;
+  const dst = form.elements.dst;
+  if (dst && dst.checked && !dst.closest('.dst-check').hidden) birth.dst_hours = 1;
   if (!birth.birth_date) throw new Error('請填出生日期。');
   const name = (fd.get('name') || '').trim();
   if (name) birth.name = name;

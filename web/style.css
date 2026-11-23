@@ -663,6 +663,13 @@ input:focus, select:focus { outline: none; border-color: var(--gold); box-shadow
 .geo-note.dst { color: var(--gold); }
 .geo-note.ok { color: var(--jade); }
 .geo-note.miss { color: var(--cinnabar); }
+/* 出生地正下方：日光節約時間的勾選框（查到日光節約年份才出現，預設勾；取消＝證件時間已是標準時） */
+.birth-form .place-field { display: flex; flex-direction: column; gap: 6px; }
+.birth-form label.dst-check { flex-direction: row; align-items: flex-start; gap: 6px; cursor: pointer; color: var(--gold); font-size: 0.78rem; line-height: 1.4; }
+.birth-form label.dst-check[hidden] { display: none; }
+.birth-form label.dst-check input { width: auto; padding: 0; margin: 2px 0 0; flex: none; accent-color: var(--gold); }
+.birth-form label.dst-check span { flex: 1; min-width: 0; }
+.birth-form label.dst-check small { display: block; color: var(--ink-mute); font-size: 0.72rem; }
 
 /* 旺衰 v2（5-6）：摘要列的旺衰格可點；比例條、逐項分數、用神／調候／格局／忌神 */
 .kv .kv-toggle { cursor: pointer; border-radius: 6px; }
