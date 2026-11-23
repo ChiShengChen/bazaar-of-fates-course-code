@@ -199,6 +199,12 @@ def mock_reading(chart: ChartData, cards: list[Card], dirs: list[Direction], per
         for key, pname in (("career", "官祿宮"), ("love", "夫妻宮"), ("wealth", "財帛宮")):
             p = f[f"ziwei.palace.{pname}"]
             d = next(x for x in dirs if x.key == key)
+            if key == "love":                # 感情段：夫妻宮與福德宮一起看（10-3）
+                q = f["ziwei.palace.福德宮"]
+                parts.append(sec(key,
+                    f"夫妻宮主星{p.value}，{p.note}；福德宮主星{q.value}，{q.note}。{tone[d.direction]}；判定規則：{d.reason}。",
+                    [p.id, q.id], card_for("夫妻宮", "福德宮", *p.value.split("、"), *q.value.split("、"))))
+                continue
             parts.append(sec(key,
                 f"{pname}主星{p.value}，{p.note}。{tone[d.direction]}；判定規則：{d.reason}。",
                 [p.id], card_for(pname, *p.value.split("、"))))

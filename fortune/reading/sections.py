@@ -119,6 +119,11 @@ def _ziwei_directions(c: ChartData) -> list[Direction]:
     out: list[Direction] = []
     for key, name in (("overview", "命宮"), ("career", "官祿宮"), ("love", "夫妻宮"), ("wealth", "財帛宮")):
         s, why = _palace_score(pal[name])
+        if key == "love":                    # 月老：感情不只看夫妻宮，福德宮（心情、安全感）一起算
+            s2, why2 = _palace_score(pal["福德宮"])
+            out.append(Direction(key, _d(s + s2), f"夫妻宮：{why}；福德宮：{why2}（規則：兩宮合計，吉星+1、煞星-1、祿權科+1、忌-1）",
+                                 ["ziwei.palace.夫妻宮", "ziwei.palace.福德宮"]))
+            continue
         out.append(Direction(key, _d(s), f"{name}：{why}（規則：吉星+1、煞星-1、祿權科+1、忌-1）", [f"ziwei.palace.{name}"]))
     out.insert(1, Direction("personality", "平", "性格段為描述，不判吉凶", ["ziwei.palace.命宮", "ziwei.soul_star"]))
     ln = next((x for x in c.facts if x.id.startswith("ziwei.liunian.") and "今年" in x.note), None)

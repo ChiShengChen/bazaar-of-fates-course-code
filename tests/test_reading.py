@@ -108,3 +108,18 @@ def test_boundary_check(mei):
 def test_consistency_offline_is_perfect(mei):
     rep = consistency_report("bazi", mei, runs=3, today=TODAY)
     assert rep["ok"] and rep["worst_score"] == 1.0
+
+
+def test_ziwei_love_reads_spouse_and_fude_palaces(mei):
+    # 10-3（月老規格書）：紫微感情段不只看夫妻宮，福德宮一起算；依據兩宮都列出，三次方向一致
+    from fortune.reading.sections import _d, _palace_score
+    c = cast("ziwei", mei, today=TODAY)
+    love = next(d for d in directions(c) if d.key == "love")
+    pal = {p["name"]: p for p in c.payload["palaces"]}
+    assert love.evidence == ["ziwei.palace.夫妻宮", "ziwei.palace.福德宮"] and "福德宮" in love.reason
+    assert love.direction == _d(_palace_score(pal["夫妻宮"])[0] + _palace_score(pal["福德宮"])[0])
+    r, _ = make_reading("ziwei", mei, today=TODAY)
+    sec = next(s for s in r.sections if s.key == "love")
+    assert {"ziwei.palace.夫妻宮", "ziwei.palace.福德宮"} <= set(sec.evidence) and r.checks["passed"]
+    rep = consistency_report("ziwei", mei, runs=3, today=TODAY)
+    assert next(s for s in rep["sections"] if s["key"] == "love")["direction_consistent"]
