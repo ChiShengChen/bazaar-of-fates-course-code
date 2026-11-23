@@ -89,7 +89,7 @@ pip install -e ".[oracles]" && python -m fortune.tools.oracle_check --n 200   # 
 | 章 | 做什麼 | 在哪裡 |
 |---|---|---|
 | 3 | 規格書、金鑰、第一次跑起來 | [docs/templates/spec_template.md](docs/templates/spec_template.md)、[.env.example](.env.example) |
-| 4 | 排盤引擎：精確節氣、真太陽時、晚子時、閏月、十神、時辰不明、合盤 | [fortune/calendar/](fortune/calendar/)、[fortune/bazi/](fortune/bazi/)、[fortune/ziwei/](fortune/ziwei/)、[fortune/chart.py](fortune/chart.py)、[tests/cases/standard_cases.yaml](tests/cases/standard_cases.yaml) |
+| 4 | 排盤引擎：精確節氣、真太陽時、晚子時、閏月、十神、時辰不明、合盤、大運流年、用經歷校盤 | [fortune/calendar/](fortune/calendar/)、[fortune/bazi/](fortune/bazi/)、[fortune/ziwei/](fortune/ziwei/)、[fortune/chart.py](fortune/chart.py)、[tests/cases/standard_cases.yaml](tests/cases/standard_cases.yaml)、[docs/templates/calibration_sheet.md](docs/templates/calibration_sheet.md) |
 | 5 | 知識卡、AI 只讀盤面事實、六段固定格式 | [fortune/knowledge/](fortune/knowledge/)、[fortune/reading/prompt.py](fortune/reading/prompt.py)、[fortune/reading/sections.py](fortune/reading/sections.py) |
 | 6 | 每段標依據、盤面核對、引用核對、越界檢查、一致性、驗收清單 | [fortune/reading/checks.py](fortune/reading/checks.py)、[fortune/reading/consistency.py](fortune/reading/consistency.py)、[docs/templates/reading_review_checklist.md](docs/templates/reading_review_checklist.md) |
 | 7 | 對話、人設與拒答、東方魔幻介面、合盤頁 | [fortune/chat/session.py](fortune/chat/session.py)、[persona/master.yaml](persona/master.yaml)、[web/](web/) |
@@ -137,7 +137,7 @@ fortune/
 web/            純 HTML/JS 的東方魔幻介面（排盤・解讀・合盤・對話）
 persona/        命理師人設設定檔
 tests/          標準命例與測試
-docs/           API 契約、講義、驗證紀錄、七份模板
+docs/           API 契約、講義、驗證紀錄、八份模板
 deploy/         Dockerfile、Render 設定
 .claude/skills/ 三支 Skill
 ```
