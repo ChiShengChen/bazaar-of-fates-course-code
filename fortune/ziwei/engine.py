@@ -173,10 +173,10 @@ def cast(birth: BirthInput, *, leap_rule: str | None = None, today: date | None 
     # 時支：依流派用真太陽時或手錶時間
     from datetime import timedelta
     from fortune.calendar.true_solar import to_true_solar
-    clock = birth.clock_dt
+    clock = birth.standard_dt                 # 手錶時間扣掉日光節約時間（沒有就是手錶時間）
     use_tst = birth.use_true_solar_time if birth.use_true_solar_time is not None else rules.hour_source == "true_solar"
     if birth.longitude is not None and use_tst:
-        clock, _ = to_true_solar(clock, birth.longitude, birth.tz_offset_hours)
+        clock, _ = to_true_solar(birth.clock_dt, birth.longitude, birth.tz_offset_hours)
     hb = hour_branch_of(clock.hour)
     lunar_date = clock.date()
     if clock.hour == 23:

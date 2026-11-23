@@ -346,6 +346,8 @@ async function geoLookup(form) {
     if (!g || !g.name) { setNote((g && g.message) || `查不到「${place}」，請手動填經度與時區`, 'miss'); return; }
     if (g.longitude != null) form.elements.longitude.value = g.longitude;
     if (g.tz_offset_hours != null) form.elements.tz_offset_hours.value = g.tz_offset_hours;
+    // 時區裡含日光節約時間：記下這個時區值；送出時時區沒被手動改過，才告訴後端扣回標準時
+    form.dataset.dstTz = g.dst && g.tz_offset_hours != null ? String(Number(g.tz_offset_hours)) : '';
     const tz = g.tz_offset_hours != null ? `UTC${g.tz_offset_hours >= 0 ? '+' : ''}${g.tz_offset_hours}` : '';
     setNote(g.note || `${g.name}${g.longitude != null ? '・經度 ' + g.longitude : ''}${tz ? '・' + tz : ''}`, g.dst ? 'dst' : 'ok');
     // 查到了就把焦點移開：datalist 的建議選單還開著時，下一次點「排盤」會先被拿去關選單
@@ -367,7 +369,9 @@ function setupPlaceField(form) {
 /** 讀表單 → birth 物件（契約格式；空欄位不送）。place 照送；前端已填經度就以前端為準（後端只在缺經度時補） */
 function readBirth(form) {
   const fd = new FormData(form);
-  const birth = { birth_date: fd.get('birth_date'), tz_offset_hours: Number(fd.get('tz_offset_hours') || 8), use_true_solar_time: true };
+  // 真太陽時不在這裡指定：交給流派設定（課程預設開、手錶時間派關）
+  const birth = { birth_date: fd.get('birth_date'), tz_offset_hours: Number(fd.get('tz_offset_hours') || 8) };
+  if (form.dataset.dstTz && String(birth.tz_offset_hours) === form.dataset.dstTz) birth.dst_hours = 1;
   if (!birth.birth_date) throw new Error('請填出生日期。');
   const name = (fd.get('name') || '').trim();
   if (name) birth.name = name;
@@ -388,7 +392,7 @@ function openReport(form) {
   let birth;
   try { birth = readBirth(form); } catch (e) { notice(e.message, 'error'); $('#birth-panel').open = true; return; }
   const q = new URLSearchParams();
-  const fields = { name: birth.name, full_name: birth.full_name, birth_date: birth.birth_date, birth_time: birth.birth_time, gender: birth.gender, place: birth.place, longitude: birth.longitude, tz: birth.tz_offset_hours };
+  const fields = { name: birth.name, full_name: birth.full_name, birth_date: birth.birth_date, birth_time: birth.birth_time, gender: birth.gender, place: birth.place, longitude: birth.longitude, tz: birth.tz_offset_hours, dst: birth.dst_hours };
   for (const [k, v] of Object.entries(fields)) if (v != null && v !== '') q.set(k, String(v));
   const sp = schoolPayload();
   if (sp.school) q.set('school', sp.school);

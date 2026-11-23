@@ -95,7 +95,10 @@
 
       // ---- 出生資料（query string → 契約格式）
       function birthFromQuery() {
-        const b = { birth_date: q.get('birth_date') || '', tz_offset_hours: Number(q.get('tz') || q.get('tz_offset_hours') || 8), use_true_solar_time: true };
+        // 真太陽時交給流派設定（網址帶的 school／overrides）；dst＝時區裡的日光節約小時數
+        const b = { birth_date: q.get('birth_date') || '', tz_offset_hours: Number(q.get('tz') || q.get('tz_offset_hours') || 8) };
+        const dst = Number(q.get('dst') || 0);
+        if (dst > 0) b.dst_hours = dst;
         if (!b.birth_date) return null;
         for (const k of ['name', 'full_name', 'birth_time', 'gender', 'place']) { const v = (q.get(k) || '').trim(); if (v) b[k] = v; }
         const lng = q.get('longitude');

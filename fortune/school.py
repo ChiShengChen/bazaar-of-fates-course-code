@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from fortune.config import ROOT, get_settings
 
@@ -26,8 +26,14 @@ SCHOOLS_DIR = ROOT / "schools"
 class BaziRules(BaseModel):
     year_boundary: Literal["lichun", "lunar_new_year"] = "lichun"          # 年柱換年：立春｜農曆新年
     month_stem_follows: Literal["year_pillar", "lichun_year"] = "year_pillar"  # 月干（五虎遁）依：年柱天干｜立春年天干（只在農曆新年換年時有差）
-    late_zi: Literal["next_day", "same_day", "same_day_next_hour_stem"] = "next_day"   # 晚子時日柱：換日｜不換｜不換但時干依隔日日干（lunar-python 預設）
+    late_zi: Literal["next_day", "same_day"] = "next_day"                 # 晚子時日柱：換日｜不換（兩派時干都依隔日日干起，23:30 辛亥日是庚子時）
     true_solar_time: Literal["on", "off"] = "on"                          # 時辰是否換算真太陽時
+
+    @field_validator("late_zi", mode="before")
+    @classmethod
+    def _old_late_zi(cls, v: Any) -> Any:
+        # 2026-11 以前的第三個選項「日柱不換、時干依隔日」＝現在的 same_day；舊流派檔、舊網址照樣能用
+        return "same_day" if v == "same_day_next_hour_stem" else v
     minggong_month: Literal["jie", "zhongqi"] = "jie"                      # 八字命宮的生月：以節｜以中氣
     yangren_yin_stems: Literal["chenwei", "yinshen", "none"] = "chenwei"   # 陰干羊刃：乙辰丁未己未辛戌癸丑｜乙寅丁申己申辛亥癸巳｜不論
     xusui_boundary: Literal["lunar_new_year", "lichun"] = "lunar_new_year"  # 虛歲加一的時點
@@ -81,7 +87,7 @@ OPTION_LABELS: dict[str, dict[str, dict[str, str]]] = {
     "bazi": {
         "year_boundary": {"lichun": "立春換年（通行）", "lunar_new_year": "農曆新年換年（民俗）"},
         "month_stem_follows": {"year_pillar": "月干跟著年柱天干（五虎遁）", "lichun_year": "月干永遠依立春年天干（只換年柱不動月柱）"},
-        "late_zi": {"next_day": "晚子時換日柱", "same_day": "晚子時不換日柱", "same_day_next_hour_stem": "晚子時日柱不換、時干依隔日日干"},
+        "late_zi": {"next_day": "晚子時換日柱", "same_day": "晚子時不換日柱（時干照樣依隔日日干）"},
         "true_solar_time": {"on": "時辰用真太陽時", "off": "時辰用手錶時間"},
         "minggong_month": {"jie": "命宮生月以節", "zhongqi": "命宮生月以中氣"},
         "yangren_yin_stems": {"chenwei": "陰干羊刃取辰未戌丑", "yinshen": "陰干羊刃取寅申巳亥", "none": "陰干不論羊刃"},

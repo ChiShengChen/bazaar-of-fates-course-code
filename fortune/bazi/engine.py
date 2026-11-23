@@ -173,8 +173,9 @@ def cast(birth: BirthInput, *, late_zi_next_day: bool | None = None, school=None
     if birth.has_time and birth.longitude is not None and use_tst:
         solar_dt, corr = to_true_solar(clock, birth.longitude, birth.tz_offset_hours)
     elif birth.has_time:
-        solar_dt = clock
-        warnings.append("未提供出生地經度，時柱以手錶時間計，未換算真太陽時" if birth.longitude is None else "依流派設定，時柱用手錶時間、未換算真太陽時")
+        solar_dt = birth.standard_dt          # 日光節約時間是時鐘撥快，不是流派：先扣回標準時
+        warnings.append(("未提供出生地經度，時柱以手錶時間計，未換算真太陽時" if birth.longitude is None else "依流派設定，時柱用手錶時間、未換算真太陽時")
+                        + (f"（已先扣掉日光節約時間 {birth.dst_hours:g} 小時）" if birth.dst_hours else ""))
 
     # 年、月以「交節的絕對時刻」比較 → 用手錶時間（交節是全球同一瞬間，不隨經度改變）；
     # 真太陽時只用來定時辰與子時換日。這是 4-3「節氣交界」最常錯的地方之一。
@@ -213,17 +214,15 @@ def cast(birth: BirthInput, *, late_zi_next_day: bool | None = None, school=None
         late_zi = True
         warnings.append("出生於晚子時（23 時後），日柱依「晚子時換日」派算作隔日；另一派不換日（流派可切換）")
     elif birth.has_time and ref.hour == 23:
-        warnings.append("出生於晚子時（23 時後），依流派日柱不換日；另一派算隔日（流派可切換）")
+        warnings.append("出生於晚子時（23 時後），依流派日柱不換日、時干照隔日的日干起；另一派日柱也算隔日（流派可切換）")
     dp = day_pillar_of(day_ref)
 
     pillars = {"year": yp, "month": mp, "day": dp}
 
-    # 3. 時柱（第三派：晚子時日柱不換，但時干用隔日的日干起五鼠遁）
+    # 3. 時柱：23 時起的子時屬於下一天，時干一律用隔日的日干起五鼠遁（兩派只差日柱換不換）。
+    #    用當天日干會排成同一天 0 時那個子時的干支（例如辛亥日 23:30 排成戊子，應為庚子）。
     if birth.has_time:
-        hour_stem_src = dp.stem
-        if ref.hour == 23 and rules.late_zi == "same_day_next_hour_stem":
-            hour_stem_src = day_pillar_of(ref + timedelta(hours=1)).stem
-            warnings.append("出生於晚子時：依流派日柱不換、時干依隔日日干起五鼠遁")
+        hour_stem_src = day_pillar_of(ref + timedelta(hours=1)).stem if ref.hour == 23 else dp.stem
         pillars["hour"] = hour_pillar(hour_stem_src, hour_branch_of(ref))
     else:
         warnings.append("時辰不明：只排年、月、日三柱；時柱與相關判斷（子女、晚年、身宮）標示為資料不足")

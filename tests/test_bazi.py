@@ -61,6 +61,31 @@ def test_late_zi_configurable():
     b = BirthInput(birth_date="2000-01-07", birth_time="23:30", gender="male", longitude=121.5)
     assert B.cast(b).pillars["day"].gz == "乙丑"
     assert B.cast(b, late_zi_next_day=False).pillars["day"].gz == "甲子"
+    # 兩派時干都依隔日日干起（23 時起的子時屬於下一天）：丙子，不是同一天 0 時的甲子
+    assert B.cast(b).pillars["hour"].gz == B.cast(b, late_zi_next_day=False).pillars["hour"].gz == "丙子"
+
+
+def test_late_zi_hour_stem_matches_measured_calculators():
+    # Jade Almanac 慣例資料集 B1：1990-06-15 23:30 北京，8 個實作的時柱全是庚子（不換日派是辛亥日庚子時）
+    b = BirthInput(birth_date="1990-06-15", birth_time="23:30", gender="male", longitude=116.4, use_true_solar_time=False)
+    c = B.cast(b, late_zi_next_day=False)
+    assert (c.pillars["day"].gz, c.pillars["hour"].gz) == ("辛亥", "庚子")
+
+
+def test_summer_time_is_taken_out_without_true_solar_time():
+    # 台北 1975-07-15 15:30：查表得 UTC+9（日光節約時間）；手錶時間派不換算真太陽時，也要先扣回標準時 14:30 → 未時
+    from fortune.chart import cast
+    from fortune.school import resolve
+    b = BirthInput(birth_date="1975-07-15", birth_time="15:30", gender="male", place="台北").with_geo()
+    assert (b.tz_offset_hours, b.dst_hours) == (9, 1)
+    for school in (None, "clock-time"):
+        c = cast("bazi", b, school=resolve(school) if school else None, with_alternatives=False)
+        assert c.fact("bazi.pillar.hour").value.startswith("丁未"), school
+    z = cast("ziwei", b, school=resolve("clock-time"), with_alternatives=False)
+    assert z.payload["hour_branch"] == "未"
+    # 手動填 UTC+9（沒有標夏令時）就當標準時：15:30 是申時
+    b9 = BirthInput(birth_date="1975-07-15", birth_time="15:30", gender="male", longitude=121.56, tz_offset_hours=9)
+    assert cast("bazi", b9, school=resolve("clock-time"), with_alternatives=False).fact("bazi.pillar.hour").value.startswith("戊申")
 
 
 def test_relations_detected(mei):

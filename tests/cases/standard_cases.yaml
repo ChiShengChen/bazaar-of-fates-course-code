@@ -38,7 +38,7 @@
   birth: {birth_date: "2000-01-07", birth_time: "23:30", gender: male, longitude: 121.5}
   expect:
     bazi: {year: 己卯, month: 丁丑, day: 乙丑, hour: 丙子}
-  note: 2000-01-07 本身是甲子日；23 時後依「晚子時換日」派算乙丑日、丙子時。另一派不換日會得甲子日、甲子時。
+  note: 2000-01-07 本身是甲子日；23 時後依「晚子時換日」派算乙丑日、丙子時。另一派不換日會得甲子日、丙子時（23 時起的子時屬於下一天，兩派時干都依隔日乙起五鼠遁）。
 
 - id: no_birth_time
   title: 時辰不明（1990-06-15 女）
@@ -83,8 +83,8 @@
   birth: {birth_date: "2000-01-07", birth_time: "23:30", gender: male, longitude: 121.5}
   school: clock-time
   expect:
-    bazi: {year: 己卯, month: 丁丑, day: 甲子, hour: 甲子}
-  note: 課程預設算乙丑日丙子時；手錶時間派不換日 → 甲子日、甲子時。
+    bazi: {year: 己卯, month: 丁丑, day: 甲子, hour: 丙子}
+  note: 課程預設算乙丑日丙子時；手錶時間派不換日 → 甲子日，時干照樣依隔日乙起 → 丙子時。2026-11 以前排成甲子時（用當天日干），那是同一天 0 時的子時；Jade Almanac 慣例資料集量到的 8 個排盤實作都是丙子這一類。
 
 - id: school_clock_time_hour
   title: 手錶時間派：不換算真太陽時（2020-11-03 14:55 男）
@@ -119,12 +119,12 @@
   note: 年柱依農曆新年仍是癸卯，月干依立春年（甲）起五虎遁 → 丙寅；與上一例（月干跟年柱 → 甲寅）對照。
 
 - id: school_late_zi_next_hour_stem
-  title: 晚子時第三派：日柱不換、時干依隔日（2000-01-07 23:30 男）
+  title: 舊設定名稱 same_day_next_hour_stem 仍可用（＝晚子時不換日）（2000-01-07 23:30 男）
   birth: {birth_date: "2000-01-07", birth_time: "23:30", gender: male, longitude: 121.5}
   overrides: {bazi: {late_zi: same_day_next_hour_stem}}
   expect:
     bazi: {year: 己卯, month: 丁丑, day: 甲子, hour: 丙子}
-  note: lunar-python 的預設（sect=2）：日柱甲子不換，時干用隔日乙的五鼠遁 → 丙子。與「換日派」乙丑丙子、「不換派」甲子甲子對照。
+  note: lunar-python 的預設（sect=2）：日柱甲子不換，時干用隔日乙的五鼠遁 → 丙子。2026-11 起「不換日」本身就是這樣排，舊的第三個選項名稱自動當成不換日。
 
 # ---------------------------------------------------------------- 姓名學（熊崎式五格）
 # 筆畫為康熙筆畫（部首還原原形），逐字對照康熙字典部首＋其餘筆畫手算；五格依「單姓天格、單名地格加假數 1」。

@@ -19,7 +19,8 @@ class BirthInput(BaseModel):
     gender: str | None = Field(default=None, description="male / female；大運與大限方向需要")
     place: str | None = Field(default=None, description="出生地名（顯示用）")
     longitude: float | None = Field(default=None, ge=-180, le=180, description="出生地經度，算真太陽時用")
-    tz_offset_hours: float = Field(default=8.0, description="出生地時區（台灣 +8）")
+    tz_offset_hours: float = Field(default=8.0, description="出生地時區（台灣 +8；日光節約時間那幾年 +9）")
+    dst_hours: float = Field(default=0.0, ge=0, le=2, description="時區裡有幾小時是日光節約時間（查出生地時自動填）；不換算真太陽時，日柱時柱照標準時排")
     use_true_solar_time: bool | None = Field(default=None, description="有經度時是否換算真太陽時；空＝照流派設定")
 
     @field_validator("gender")
@@ -49,6 +50,7 @@ class BirthInput(BaseModel):
         if not hit:
             return self
         return self.model_copy(update={"longitude": hit["longitude"], "tz_offset_hours": hit["tz_offset_hours"],
+                                       "dst_hours": 1.0 if hit.get("dst") else 0.0,
                                        "place": self.place + (f"（{hit['note']}）" if hit.get("note") else "")})
 
     @property
@@ -63,6 +65,13 @@ class BirthInput(BaseModel):
     def clock_dt(self) -> datetime:
         """手錶時間（帶時區）。沒有時辰時以正午代替，只用來定年、月、日柱。"""
         return datetime.combine(self.birth_date, self.birth_time or time(12, 0), tzinfo=self.tz)
+
+    @property
+    def standard_dt(self) -> datetime:
+        """標準時：手錶時間扣掉日光節約時間。不換算真太陽時的時候，日柱、時柱用它排；年、月照樣用手錶時間比交節。"""
+        if not self.dst_hours or self.birth_time is None:
+            return self.clock_dt
+        return (self.clock_dt - timedelta(hours=self.dst_hours)).replace(tzinfo=timezone(timedelta(hours=self.tz_offset_hours - self.dst_hours)))
 
     def label(self) -> str:
         who = self.name or (self.full_name or "").replace(" ", "") or "命主"

@@ -37,9 +37,11 @@ def test_random_sample_agrees():
     assert bad == [], bad
 
 
-def test_lunar_python_default_late_zi_is_our_third_school():
-    # lunar-python sect=2（預設）：2000-01-07 23:30 → 日柱甲子不換、時柱丙子（時干依隔日乙）
+def test_lunar_python_default_late_zi_is_our_same_day():
+    # lunar-python sect=2（預設）：2000-01-07 23:30 → 日柱甲子不換、時柱丙子（時干依隔日乙）＝本引擎的「不換日」；
+    # 舊名稱 same_day_next_hour_stem 也接受
     from fortune.chart import cast
-    c = cast("bazi", BirthInput(birth_date="2000-01-07", birth_time="23:30", gender="male", longitude=121.5),
-             overrides={"bazi": {"late_zi": "same_day_next_hour_stem"}}, with_alternatives=False)
-    assert c.fact("bazi.pillar.day").value == "甲子" and c.fact("bazi.pillar.hour").value == "丙子"
+    for late_zi in ("same_day", "same_day_next_hour_stem"):
+        c = cast("bazi", BirthInput(birth_date="2000-01-07", birth_time="23:30", gender="male", longitude=121.5),
+                 overrides={"bazi": {"late_zi": late_zi}}, with_alternatives=False)
+        assert c.fact("bazi.pillar.day").value == "甲子" and c.fact("bazi.pillar.hour").value == "丙子"
