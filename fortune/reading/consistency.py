@@ -19,8 +19,9 @@ def _jaccard(a: set, b: set) -> float:
     return 1.0 if not a and not b else len(a & b) / len(a | b)
 
 
-def consistency_report(system: str, birth: BirthInput, runs: int = 3, today: date | None = None, school=None) -> dict[str, Any]:
-    readings = [make_reading(system, birth, today=today, school=school)[0] for _ in range(max(2, runs))]
+def consistency_report(system: str, birth: BirthInput, runs: int = 3, today: date | None = None, school=None,
+                       kind: str = "general", year: int | None = None) -> dict[str, Any]:
+    readings = [make_reading(system, birth, today=today, school=school, kind=kind, year=year)[0] for _ in range(max(2, runs))]
     per_section = []
     worst = 1.0
     for i, sec in enumerate(readings[0].sections):

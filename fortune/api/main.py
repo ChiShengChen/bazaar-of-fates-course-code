@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -115,7 +115,12 @@ class AllRequest(SchoolMixin):
     birth: BirthInput
 
 
-class ReadingRequest(SchoolMixin):
+class ReportKindMixin(BaseModel):
+    kind: Literal["general", "career_year"] = "general"          # career_year＝事業流年（10-4），四段
+    year: int | None = Field(default=None, ge=1900, le=2100)      # 事業流年的年份；不給就是今年
+
+
+class ReadingRequest(SchoolMixin, ReportKindMixin):
     system: str = "bazi"
     birth: BirthInput
     focus: str | None = None
@@ -155,10 +160,16 @@ class CheckRequest(BaseModel):
     chart: dict[str, Any]
 
 
-class ConsistencyRequest(SchoolMixin):
+class ConsistencyRequest(SchoolMixin, ReportKindMixin):
     system: str = "bazi"
     birth: BirthInput
     runs: int = Field(default=3, ge=2, le=5)
+
+
+def _kind_guard(req: ReportKindMixin, system: str) -> JSONResponse | None:
+    if req.kind == "career_year" and system not in ("bazi", "ziwei"):
+        return _err(400, "unsupported_kind", "事業流年只有八字與紫微")
+    return None
 
 
 # ---------------------------------------------------------------- 端點
@@ -242,11 +253,11 @@ def api_cast_all(req: AllRequest):
 
 @app.post("/api/reading")
 def api_reading(req: ReadingRequest, request: Request):
-    if (r := _name_guard(req.system, req.birth) or _count(request)):
+    if (r := _name_guard(req.system, req.birth) or _kind_guard(req, req.system) or _count(request)):
         return r
     try:
         with _LLMCtx(req.llm):
-            reading, _chart = make_reading(req.system, req.birth, focus=req.focus, school=_school(req))
+            reading, _chart = make_reading(req.system, req.birth, focus=req.focus, school=_school(req), kind=req.kind, year=req.year)
     except NeedsBirthTime as e:
         return _err(422, "needs_birth_time", "紫微斗數需要出生時辰", candidates=e.candidates)
     _charge(reading, "reading")
@@ -265,7 +276,7 @@ def _sse(event: str, data: Any) -> str:
 
 @app.post("/api/reading/stream")
 def api_reading_stream(req: ReadingRequest, request: Request):
-    if (r := _name_guard(req.system, req.birth) or _count(request)):
+    if (r := _name_guard(req.system, req.birth) or _kind_guard(req, req.system) or _count(request)):
         return r
 
     _LLMCtx(req.llm)                     # 先驗證設定（錯就 400，而不是串流中才失敗）
@@ -275,7 +286,8 @@ def api_reading_stream(req: ReadingRequest, request: Request):
 
     def gen() -> Iterator[str]:
         try:
-            for item in stream_reading(req.system, req.birth, focus=req.focus, school=school, provider=provider):
+            for item in stream_reading(req.system, req.birth, focus=req.focus, school=school, provider=provider,
+                                       kind=req.kind, year=req.year):
                 if isinstance(item, tuple):
                     reading, _chart = item
                     _charge(reading, "reading_stream")
@@ -336,11 +348,11 @@ def api_check(req: CheckRequest):
 
 @app.post("/api/consistency")
 def api_consistency(req: ConsistencyRequest, request: Request):
-    if (r := _name_guard(req.system, req.birth) or _count(request, weight=req.runs)):
+    if (r := _name_guard(req.system, req.birth) or _kind_guard(req, req.system) or _count(request, weight=req.runs)):
         return r
     try:
         with _LLMCtx(req.llm):
-            rep = consistency_report(req.system, req.birth, runs=req.runs, school=_school(req))
+            rep = consistency_report(req.system, req.birth, runs=req.runs, school=_school(req), kind=req.kind, year=req.year)
         for r in rep.get("readings", []):
             _charge(Reading.model_validate(r), "consistency")
         rep.pop("readings", None)

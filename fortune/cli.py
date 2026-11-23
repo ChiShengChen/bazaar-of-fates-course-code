@@ -2,6 +2,7 @@
   python -m fortune                 啟動網站（http://localhost:8000）
   python -m fortune cast 1990-06-15 14:30 female   在終端機直接排盤
   python -m fortune reading bazi 1990-06-15 14:30 female
+  python -m fortune reading bazi 1990-06-15 14:30 女 --career 2027   2027 年事業流年（四段；八字、紫微）
   python -m fortune name 陳美玲 1990-06-15 14:30 女    姓名學（五格、三才、81 數理、配八字喜用）
   python -m fortune reading xingming 陳美玲 1990-06-15 14:30 女
   python -m fortune bot             啟動 Telegram 機器人（需 TELEGRAM_BOT_TOKEN）
@@ -55,7 +56,14 @@ def main(argv: list[str] | None = None) -> None:
     elif cmd == "reading":
         from fortune.reading.report import make_reading
         system = argv[1]
-        r, _ = make_reading(system, _birth(argv[2:]))
+        rest, year = argv[2:], None
+        if "--career" in rest:                       # 事業流年（10-4）：--career 2027
+            i = rest.index("--career")
+            year = int(rest[i + 1])
+            rest = rest[:i] + rest[i + 2:]
+        r, _ = make_reading(system, _birth(rest), kind="career_year" if year else "general", year=year)
+        if r.year:
+            print(f"＝ {r.year} 年事業流年（{r.system_zh}）＝")
         for s in r.sections:
             print(f"\n## {s.title}（{s.direction}）\n{s.text}\n依據：{', '.join(s.evidence)}\n知識卡：{', '.join(s.cards) or '無'}")
         print("\n查核：", r.checks["summary"])

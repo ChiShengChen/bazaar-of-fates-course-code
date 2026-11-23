@@ -9,10 +9,13 @@ from fortune.reading.persona import Persona
 from fortune.reading.sections import Direction, sections_for
 
 
-def output_format(system: str = "bazi") -> str:
-    titles = [t for _, t in sections_for(system)]
+_COUNT = {4: "四", 6: "六"}
+
+
+def output_format(system: str = "bazi", kind: str = "general") -> str:
+    titles = [t for _, t in sections_for(system, kind)]
     rest = "\n".join(f"## {t}" for t in titles[2:])
-    return f"""輸出格式（嚴格遵守，六段都要有，順序固定，不加其他標題）：
+    return f"""輸出格式（嚴格遵守，{_COUNT[len(titles)]}段都要有，順序固定，不加其他標題）：
 
 ## {titles[0]}
 方向：吉／平／凶（照我給的方向，不可自行更改）
@@ -32,7 +35,7 @@ OUTPUT_FORMAT = output_format()
 _NO_CAST = {"bazi": "干支、十神、星曜或宮位", "ziwei": "干支、十神、星曜或宮位", "xingming": "筆畫、五格數字或八字喜用"}
 
 
-def system_prompt(persona: Persona, system: str = "bazi") -> str:
+def system_prompt(persona: Persona, system: str = "bazi", kind: str = "general") -> str:
     """固定不變的部分（人設、規則、格式）放 system，可被快取。"""
     rules = "\n".join(f"- {r}" for r in persona.tone_rules) or "- 只根據提供的事實與知識卡說話"
     return f"""你是命理師「{persona.name}」。{persona.style}
@@ -47,18 +50,25 @@ def system_prompt(persona: Persona, system: str = "bazi") -> str:
 - 盤面事實末尾列出的「流派歧見」是換一派會得到的不同結果；提到那些格子時要說明本盤依哪一派，不可自行換派。
 - 用繁體中文，口語但不輕浮，每段獨立成文。
 
-{output_format(system)}"""
+{output_format(system, kind)}"""
 
 
-def user_prompt(chart: ChartData, cards: list[Card], dirs: list[Direction], focus: str | None = None) -> str:
+def user_prompt(chart: ChartData, cards: list[Card], dirs: list[Direction], focus: str | None = None,
+                kind: str = "general") -> str:
+    sections = sections_for(chart.system, kind)
     dir_lines = "\n".join(f"- {t}（{d.key}）：{d.direction}　理由：{d.reason}　相關事實：{', '.join(d.evidence)}"
-                          for (k, t), d in zip(sections_for(chart.system), dirs))
+                          for (k, t), d in zip(sections, dirs))
     cards_text = "\n\n".join(c.brief() for c in cards) or "（無）"
     focus_line = f"\n\n命主特別想問：{focus}（請在相關段落多著墨，但仍只用上面的事實與卡）" if focus else ""
+    kind_line = ""
+    if kind == "career_year":
+        year = next((x.id.rsplit(".", 1)[1] for x in chart.facts if x.id.startswith(f"{chart.system}.liunian.") and "今年" in x.note), "")
+        kind_line = (f"報告種類：{year} 年事業流年。只談這一年的事業與工作，不談感情、健康、財務投資；"
+                     f"盤面事實裡標「今年」的流年就是 {year} 年，目前的大運大限也是那一年的。\n")
     return f"""命主：{chart.subject}
 系統：{chart.system_zh}
 流派：{chart.school.get('summary', '課程預設')}
-
+{kind_line}
 === 盤面事實（唯一可用的依據）===
 {chart.facts_text()}
 
@@ -68,4 +78,4 @@ def user_prompt(chart: ChartData, cards: list[Card], dirs: list[Direction], focu
 === 知識卡（唯一可引用的卡）===
 {cards_text}{focus_line}
 
-請依格式輸出六段解讀。"""
+請依格式輸出{_COUNT[len(sections)]}段解讀。"""

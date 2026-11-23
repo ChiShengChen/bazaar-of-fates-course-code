@@ -116,12 +116,12 @@
 | GET | `/api/health` | `{status, maintenance, backend, provider, model, cards}`；`backend` ∈ mock / anthropic / openai / deepseek / gemini / openai_compatible |
 | POST | `/api/cast` | `{system, birth}` → `ChartData`；`system` ∈ bazi / ziwei / xingming |
 | POST | `/api/cast/all` | `{birth}` → `{bazi, ziwei, ziwei_candidates, xingming, xingming_error}`（紫微缺時辰時 `ziwei` 為 null；沒填 `full_name` 時 `xingming` 為 null，排不出來時 `xingming_error` 寫原因） |
-| POST | `/api/reading` | `{system, birth, focus?}` → `Reading`（含 `checks`） |
+| POST | `/api/reading` | `{system, birth, focus?, kind?, year?}` → `Reading`（含 `checks`）。`kind: "career_year"` 是事業流年（10-4，八字與紫微）：`year` 指定哪一年，段落換成年度總覽、事業走勢、可以把握的、要留意的；回傳的 `Reading.kind`、`Reading.year` 標明報告種類與年份。姓名學帶 `career_year` 回 400 `unsupported_kind` |
 | POST | `/api/reading/stream` | 同上，SSE：`event: delta`（文字片段）、`event: done`（完整 `Reading` JSON）、`event: error` |
 | POST | `/api/synastry` | `{a: birth, b: birth}` → `Synastry` |
 | POST | `/api/chat` | `{session_id?, birth?, message}` → `{session_id, reply, action, evidence, cards, chart_summary}` |
 | POST | `/api/check` | `{reading, chart}` → `checks`（獨立查核，教學用） |
-| POST | `/api/consistency` | `{system, birth, runs: 3}` → 同盤問三次的一致性報告 |
+| POST | `/api/consistency` | `{system, birth, runs: 3, kind?, year?}` → 同盤問三次的一致性報告（`kind`、`year` 同 `/api/reading`） |
 | GET | `/api/geo?place=台北&date=1975-07-01` | 出生地 → 經緯度、時區（台灣日光節約時間依日期套用並附說明）；查不到回 `{name:null,message}` |
 | GET | `/api/cities` | 離線城市表（約 100 城，中／英／日別名） |
 | GET | `/api/schools` | 流派清單、站台預設、所有開關與選項 |

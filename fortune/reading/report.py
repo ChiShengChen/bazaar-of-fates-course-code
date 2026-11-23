@@ -48,12 +48,14 @@ class Reading(BaseModel):
     byok: bool = False                                        # 使用者自帶金鑰
     usage: dict[str, int] = Field(default_factory=dict)      # input/output/cache_read tokens
     warnings: list[str] = Field(default_factory=list)
+    kind: str = "general"                                    # general｜career_year（10-4 事業流年）
+    year: int | None = None                                  # 事業流年報告的年份
 
 
 # ---------------------------------------------------------------- 解析固定格式
-def parse_sections(text: str, dirs: list[Direction], system: str = "bazi") -> list[Section]:
+def parse_sections(text: str, dirs: list[Direction], system: str = "bazi", kind: str = "general") -> list[Section]:
     """把「## 標題 / 方向：/ 內文 / 依據：/ 知識卡：」解析成 Section。缺段就補空段並標示。"""
-    sections = sections_for(system)
+    sections = sections_for(system, kind)
     titles = dict(sections)
     title_to_key = {t: k for k, t in sections}
     dmap = {d.key: d for d in dirs}
@@ -88,11 +90,12 @@ _WUXING_ID = {"木": "mu", "火": "huo", "土": "tu", "金": "jin", "水": "shui
 _REL_ID = {"相生": "xiangsheng", "比和": "bihe", "相剋": "xiangke"}
 
 
-def mock_reading(chart: ChartData, cards: list[Card], dirs: list[Direction], persona: Persona, focus: str | None = None) -> str:
+def mock_reading(chart: ChartData, cards: list[Card], dirs: list[Direction], persona: Persona, focus: str | None = None,
+                 kind: str = "general") -> str:
     f = {x.id: x for x in chart.facts}
     cmap = {c.id: c for c in cards}
     by_kw = {kw: c for c in cards for kw in c.keywords}
-    titles = dict(sections_for(chart.system))
+    titles = dict(sections_for(chart.system, kind))
 
     def card_for(*words: str) -> list[str]:
         return [by_kw[w].id for w in words if w in by_kw]
@@ -107,6 +110,8 @@ def mock_reading(chart: ChartData, cards: list[Card], dirs: list[Direction], per
     tone = {"吉": "整體順勢", "平": "平穩中有起伏", "凶": "阻力較多，宜守不宜攻"}
     parts = [f"（離線示範解讀・{persona.name}）\n"]
 
+    if kind == "career_year":
+        return "\n".join(parts + _mock_career_year(chart, f, dirs, sec, card_for, tone))
     if chart.system == "bazi":
         dm, st, fav = f["bazi.day_master"], f["bazi.strength"], f["bazi.favourable"]
         present = f["bazi.gods.present"].value.split("、")
@@ -216,23 +221,80 @@ def mock_reading(chart: ChartData, cards: list[Card], dirs: list[Direction], per
     return "\n".join(parts)
 
 
+def _mock_career_year(chart: ChartData, f: dict, dirs: list[Direction], sec, card_for, tone: dict) -> list[str]:
+    """事業流年（10-4）的離線範本：四段都只用那一年的盤面事實與方向規則。"""
+    from fortune.reading.sections import _CHANCE, hua_moves, this_year_fact
+    d = {x.key: x for x in dirs}
+    if chart.system == "bazi":
+        ln = this_year_fact(chart, "bazi.liunian.")
+        year = ln.id.rsplit(".", 1)[1]
+        gz, gods = ln.value.split("・")
+        stem_god, branch_god = gods.split("/")
+        cur = f.get("bazi.dayun.current")
+        dy = f"這一年走{cur.value}大運（{cur.note.split('・')[0]}）。" if cur and "/" in cur.note else ""
+        good = sorted(g for g in {stem_god, branch_god} if g in _CHANCE)
+        return [
+            sec("overview", f"{year} 年是{gz}年，{ln.note.replace('・今年', '')}。{dy}{tone[d['overview'].direction]}。",
+                [ln.id, "bazi.favourable", "bazi.dayun.current"], card_for(stem_god, branch_god)),
+            sec("trend", f"事業看官殺與印：{year} 年流年天干{stem_god}、地支本氣{branch_god}。{tone[d['trend'].direction]}；判定規則：{d['trend'].reason}。",
+                [ln.id, "bazi.dayun.current", "bazi.gods.present"], card_for(stem_god, branch_god)),
+            sec("chances", (f"這一年可以把握的方向：{'；'.join(f'{g}代表{_CHANCE[g]}' for g in good)}。" if good
+                            else "流年沒有特別突出的機會十神，照原本的節奏累積就好。") + f"方向判定：{d['chances'].reason}。",
+                [ln.id, "bazi.favourable"], card_for(*good)),
+            sec("cautions", f"這一年要留意的地方，判定結果：{d['cautions'].reason}。{tone[d['cautions'].direction]}。",
+                [ln.id, "bazi.gods.present"], card_for(stem_god, branch_god)),
+        ]
+    ln = this_year_fact(chart, "ziwei.liunian.")
+    year = ln.id.rsplit(".", 1)[1]
+    moves = hua_moves(ln.note)
+    gl = f["ziwei.palace.官祿宮"]
+    into = [f"{s}化{h}" for s, h, to in moves if to == "官祿宮"]
+    good = [f"{s}化{h}入{to}" for s, h, to in moves if h != "忌" and to in ("命宮", "官祿宮", "財帛宮", "遷移宮")]
+    bad = [f"{s}化{h}入{to}" for s, h, to in moves if h == "忌"]
+    stars = [s for s, _, _ in moves]
+    return [
+        sec("overview", f"{ln.label}{ln.value}。{tone[d['overview'].direction]}；判定規則：{d['overview'].reason}。",
+            d["overview"].evidence, card_for(*ln.value.split("：")[-1].split("、"))),
+        sec("trend", f"事業看流年四化有沒有進官祿宮：{'、'.join(into) + '入官祿宮' if into else '這一年沒有四化進官祿宮'}；本命官祿宮主星{gl.value}。"
+                     f"{tone[d['trend'].direction]}；判定規則：{d['trend'].reason}。",
+            [ln.id, gl.id], card_for("官祿宮", *gl.value.split("、"), *[f"化{h}" for _, h, to in moves if to == "官祿宮"])),
+        sec("chances", (f"這一年的祿權科：{'、'.join(good)}，這幾宮的事比較有助力，可以主動爭取。" if good
+                        else "這一年的祿權科沒有進命宮的三方四正，機會要自己多經營。") + f"方向判定：{d['chances'].reason}。",
+            [ln.id, gl.id], card_for("化祿", "化權", "化科", *stars)),
+        sec("cautions", (f"這一年的化忌：{'、'.join(bad)}，那一宮的事容易反覆，宜放慢、多確認。" if bad else "這一年的化忌沒有落在要特別看的宮位。")
+                        + f"方向判定：{d['cautions'].reason}。",
+            d["cautions"].evidence, card_for("化忌", *[s for s, h, _ in moves if h == "忌"])),
+    ]
+
+
 # ---------------------------------------------------------------- 主流程
-def _prepare(system: str, birth: BirthInput, focus: str | None, today: date | None, school=None):
+def _prepare(system: str, birth: BirthInput, focus: str | None, today: date | None, school=None,
+             kind: str = "general", year: int | None = None):
+    if kind == "career_year" and year:
+        today = date(year, 7, 1)             # 用那一年的日期排盤：盤面事實裡的「今年」流年、目前大運大限都是那一年的
     chart = cast(system, birth, today=today, school=school)
     cards = select_cards(chart)
-    dirs = directions(chart)
+    dirs = directions(chart, kind)
     persona = load_persona()
-    return chart, cards, dirs, persona, system_prompt(persona, chart.system), user_prompt(chart, cards, dirs, focus)
+    return chart, cards, dirs, persona, system_prompt(persona, chart.system, kind), user_prompt(chart, cards, dirs, focus, kind)
 
 
-def _finish(chart: ChartData, cards: list[Card], dirs: list[Direction], persona: Persona, res: llm.LLMResult) -> Reading:
+def _report_year(chart: ChartData, kind: str) -> int | None:
+    if kind != "career_year":
+        return None
+    from fortune.reading.sections import this_year_fact
+    return int(this_year_fact(chart, f"{chart.system}.liunian.").id.rsplit(".", 1)[1])
+
+
+def _finish(chart: ChartData, cards: list[Card], dirs: list[Direction], persona: Persona, res: llm.LLMResult,
+            kind: str = "general") -> Reading:
     from fortune.reading.checks import run_checks
-    sections = parse_sections(res.text, dirs, chart.system)
+    sections = parse_sections(res.text, dirs, chart.system, kind)
     r = Reading(system=chart.system, system_zh=chart.system_zh, subject=chart.subject, persona=persona.name,
                 sections=sections, disclaimer=persona.disclaimer, raw_text=res.text,
                 cost_usd=res.cost_usd, backend=res.backend, model=res.model, byok=res.byok,
                 usage={"input_tokens": res.input_tokens, "output_tokens": res.output_tokens, "cache_read_tokens": res.cache_read_tokens},
-                warnings=chart.warnings)
+                warnings=chart.warnings, kind=kind, year=_report_year(chart, kind))
     if res.truncated:
         r.warnings = r.warnings + [f"模型輸出達 token 上限被截斷（已重試一次），缺漏段落請提高 READING_MAX_TOKENS（目前 {get_settings().reading_max_tokens}）"]
     elif res.retried:
@@ -241,18 +303,20 @@ def _finish(chart: ChartData, cards: list[Card], dirs: list[Direction], persona:
     return r
 
 
-def make_reading(system: str, birth: BirthInput, *, focus: str | None = None, today: date | None = None, school=None) -> tuple[Reading, ChartData]:
-    chart, cards, dirs, persona, sp, up = _prepare(system, birth, focus, today, school)
-    res = llm.complete(sp, up, fallback=lambda: mock_reading(chart, cards, dirs, persona, focus))
-    return _finish(chart, cards, dirs, persona, res), chart
+def make_reading(system: str, birth: BirthInput, *, focus: str | None = None, today: date | None = None, school=None,
+                 kind: str = "general", year: int | None = None) -> tuple[Reading, ChartData]:
+    """kind="career_year" 是事業流年報告（10-4）：year 指定哪一年（不給就是今年），四段。"""
+    chart, cards, dirs, persona, sp, up = _prepare(system, birth, focus, today, school, kind, year)
+    res = llm.complete(sp, up, fallback=lambda: mock_reading(chart, cards, dirs, persona, focus, kind))
+    return _finish(chart, cards, dirs, persona, res, kind), chart
 
 
 def stream_reading(system: str, birth: BirthInput, *, focus: str | None = None, today: date | None = None, school=None,
-                   provider=None) -> Iterator[str | tuple[Reading, ChartData]]:
+                   provider=None, kind: str = "general", year: int | None = None) -> Iterator[str | tuple[Reading, ChartData]]:
     """逐字 yield 文字；最後 yield (Reading, ChartData)。provider：自帶金鑰時明確傳入（串流跨執行緒，不能靠 contextvar）。"""
-    chart, cards, dirs, persona, sp, up = _prepare(system, birth, focus, today, school)
-    for item in llm.stream(sp, up, fallback=lambda: mock_reading(chart, cards, dirs, persona, focus), provider=provider):
+    chart, cards, dirs, persona, sp, up = _prepare(system, birth, focus, today, school, kind, year)
+    for item in llm.stream(sp, up, fallback=lambda: mock_reading(chart, cards, dirs, persona, focus, kind), provider=provider):
         if isinstance(item, llm.LLMResult):
-            yield _finish(chart, cards, dirs, persona, item), chart
+            yield _finish(chart, cards, dirs, persona, item, kind), chart
         else:
             yield item
