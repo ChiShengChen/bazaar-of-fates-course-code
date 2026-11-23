@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -293,6 +294,13 @@ def estimate_strength(chart: BaziChart) -> dict:
 
 
 # ---------------------------------------------------------------- 大運
+def add_months(dt: datetime, months: int) -> datetime:
+    """日曆上加幾個月；那個月沒有這一天（2 月 29 日、31 日）就取月底。"""
+    y, m = divmod(dt.month - 1 + months, 12)
+    year, month = dt.year + y, m + 1
+    return dt.replace(year=year, month=month, day=min(dt.day, calendar.monthrange(year, month)[1]))
+
+
 def compute_dayun(birth: BirthInput, chart: BaziChart, term_at: datetime, next_term_at: datetime, count: int = 8) -> list[dict]:
     if birth.gender is None:
         chart.missing.append("gender")
@@ -301,14 +309,18 @@ def compute_dayun(birth: BirthInput, chart: BaziChart, term_at: datetime, next_t
     year_yang = STEM_YANG[STEMS.index(chart.pillars["year"].stem)]
     forward = (year_yang and birth.gender == "male") or (not year_yang and birth.gender == "female")
     ref = birth.clock_dt                      # 起運同樣用絕對時刻對交節
-    # 順行數到下一節，逆行數到上一節；三日折一年（一天 = 四個月、一時辰 = 十天）
-    days = (next_term_at - ref).total_seconds() / 86400 if forward else (ref - term_at).total_seconds() / 86400
+    # 順行數到下一節，逆行數到上一節；三日折一年（一天 = 四個月、一時辰 = 十天）。
+    # 逐級換算成年、月、日、時，再照日曆加到出生時刻上（同 lunar-python 的第二種算法）：
+    # 實際 3 天＝1 年、6 小時＝1 個月、12 分鐘＝1 天、1 分鐘＝2 小時。
+    minutes = ((next_term_at - ref) if forward else (ref - term_at)).total_seconds() / 60
+    days = minutes / 1440
     start_age = round(days / 3, 1)
-    jiaoyun = ref + timedelta(days=days * 120)   # 交運的精確時刻
-    total_days = days * 120
-    y = int(total_days // 365.25); rem = total_days - y * 365.25
-    mo = int(rem // 30.4375); rem -= mo * 30.4375
-    d = int(rem); h = int(round((rem - d) * 24))
+    y, rem = divmod(minutes, 4320)
+    mo, rem = divmod(rem, 360)
+    d, rem = divmod(rem, 12)
+    y, mo, d, hours = int(y), int(mo), int(d), rem * 2
+    h = int(hours)
+    jiaoyun = add_months(ref, 12 * y + mo) + timedelta(days=d, hours=hours)   # 交運的時刻
     chart.qiyun = {"forward": forward, "years": y, "months": mo, "days": d, "hours": h, "start_age": start_age,
                    "jiaoyun": jiaoyun.isoformat(timespec="minutes"), "huanyun_digit": jiaoyun.year % 10,
                    "text": f"出生後 {y} 年 {mo} 個月 {d} 天 {h} 小時起運，{jiaoyun.strftime('%Y 年 %m 月 %d 日 %H:%M')} 交運，之後每逢尾數 {jiaoyun.year % 10} 的年份換運"}
@@ -319,7 +331,7 @@ def compute_dayun(birth: BirthInput, chart: BaziChart, term_at: datetime, next_t
     for i in range(1, count + 1):
         s, b = STEMS[(ms + step * i) % 10], BRANCHES[(mb + step * i) % 12]
         age = start_age + 10 * (i - 1)
-        start_dt = jiaoyun.replace(year=jiaoyun.year + 10 * (i - 1))      # 每運十年，從交運時刻起算
+        start_dt = add_months(jiaoyun, 120 * (i - 1))                      # 每運十年，從交運時刻起算
         out.append({
             "index": i, "gz": s + b, "stem": s, "branch": b, "start_age": age, "end_age": age + 10,
             "start_year": start_dt.year, "start_date": start_dt.date().isoformat(),

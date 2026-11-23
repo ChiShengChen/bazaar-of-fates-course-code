@@ -5,7 +5,7 @@
   python -m fortune.tools.oracle_check --n 500 --seed 7
   python -m fortune.tools.oracle_check 1990-06-15 14:30 女   # 單一命例
 需要：pip install -e ".[oracles]"（lunar-python、x-iztro，皆 MIT）。不裝不影響排盤。
-比對項目：四柱（含晚子時換日）、節氣時刻、胎元、命宮、大運序與起運年；紫微命宮、身宮、五行局、
+比對項目：四柱（含晚子時換日）、節氣時刻、胎元、命宮、大運序、大運起始年與交運時刻；紫微命宮、身宮、五行局、
 十四主星與十八輔煞星的宮位、大限起迄。差異會逐格列出，由你判斷是誰錯（也可能是流派不同）。
 """
 
@@ -52,16 +52,21 @@ def compare_bazi(birth) -> list[str]:
         mg, _ = X.minggong(c.pillars["year"].stem, c.pillars["month"].branch, c.pillars["hour"].branch)
         if mg != ec.getMingGong():
             diffs.append(f"命宮：本引擎 {mg} ≠ lunar-python {ec.getMingGong()}")
-    # 大運（lunar-python 第一筆是起運前，略過）
+    # 大運（lunar-python 第一筆是起運前，略過）。起運用它的第二種算法：三天一年、一天四月、一時辰十天逐級換算，跟本引擎同一套
     if birth.gender and c.dayun:
-        yun = ec.getYun(1 if birth.gender == "male" else 0)
+        yun = ec.getYun(1 if birth.gender == "male" else 0, 2)
         theirs_dy = [(d.getGanZhi(), d.getStartYear()) for d in yun.getDaYun()[1:4]]
         ours_dy = [(d["gz"], d["start_year"]) for d in c.dayun[:3]]
         for (og, oy), (tg, ty_) in zip(ours_dy, theirs_dy):
             if og != tg:
                 diffs.append(f"大運：本引擎 {og} ≠ lunar-python {tg}")
-            elif abs(oy - ty_) > 1:
+            elif oy != ty_:
                 diffs.append(f"大運 {og} 起始年：本引擎 {oy} ≠ lunar-python {ty_}")
+        s = yun.getStartSolar()
+        theirs_jy = datetime(s.getYear(), s.getMonth(), s.getDay(), s.getHour(), s.getMinute())
+        ours_jy = datetime.fromisoformat(c.qiyun["jiaoyun"]).replace(tzinfo=None)
+        if abs(ours_jy - theirs_jy) > timedelta(hours=6):     # 節氣時刻精度不同（秒對分），一分鐘就換算成兩小時
+            diffs.append(f"交運：本引擎 {ours_jy:%Y-%m-%d %H:%M} ≠ lunar-python {theirs_jy:%Y-%m-%d %H:%M}")
     return diffs
 
 

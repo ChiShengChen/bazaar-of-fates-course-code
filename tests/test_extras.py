@@ -53,12 +53,30 @@ def test_relations_and_chenggu():
 def test_qiyun_dayun_liunian_grid_and_liuyue():
     c = bazi_chart(AAA, today=date(2026, 10, 8))
     q = c.payload["qiyun"]
-    assert q["forward"] and q["years"] == 9 and q["jiaoyun"].startswith("2036-08")
+    assert q["forward"] and (q["years"], q["months"], q["days"]) == (10, 0, 9) and q["jiaoyun"].startswith("2036-10-18")
     d0 = c.payload["dayun"][0]
     assert d0["gz"] == "己亥" and d0["changsheng"] == "死" and d0["liunian"][0] == {"year": 2036, "gz": "丙辰", "stem_god": "傷官", "branch_god": "正財"}
     assert len(d0["liunian"]) == 10
     months = c.payload["liuyue"]["months"]
     assert [m["gz"] for m in months[:3]] == ["庚寅", "辛卯", "壬辰"] and months[0]["term"] == "立春"
+
+
+def test_qiyun_converts_three_days_to_a_year_step_by_step():
+    # 小美：逆行數回芒種 06-06 06:46，相差 9 天 7 時 43 分；三天一年、一天四月、一時辰十天逐級換算後照日曆加上去
+    # （lunar-python 第二種算法：3 年 1 月 8 天 16 時，1993-07-24 06:30；差的一小時來自節氣時刻它只取到分鐘）
+    c = bazi_chart(BirthInput(birth_date="1990-06-15", birth_time="14:30", gender="female"), today=date(2026, 11, 23))
+    q = c.payload["qiyun"]
+    assert not q["forward"] and (q["years"], q["months"], q["days"], q["hours"]) == (3, 1, 8, 15)
+    assert q["jiaoyun"].startswith("1993-07-24T05") and q["start_age"] == 3.1
+    assert [(d["gz"], d["start_date"]) for d in c.payload["dayun"][:2]] == [("辛巳", "1993-07-24"), ("庚辰", "2003-07-24")]
+
+
+def test_add_months_clamps_to_month_end():
+    from datetime import datetime
+    from fortune.bazi.engine import add_months
+    assert add_months(datetime(1996, 2, 29, 8), 120) == datetime(2006, 2, 28, 8)     # 交運在閏日，十年後那年沒有 2/29
+    assert add_months(datetime(2023, 1, 31), 1) == datetime(2023, 2, 28)
+    assert add_months(datetime(2023, 11, 15), 14) == datetime(2025, 1, 15)
 
 
 def test_relations_three_way():
