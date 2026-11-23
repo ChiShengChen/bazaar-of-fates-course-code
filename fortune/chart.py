@@ -237,6 +237,10 @@ def bazi_chart(birth: BirthInput, *, today: date | None = None, years_ahead: int
 
 
 # ---------------------------------------------------------------- 紫微 → ChartData
+_HOW_ZIHUA = ("每一宮的宮干也照四化表化出祿權科忌（庚、壬干照流派設定）。化出的星就在本宮，叫離心自化；化到對宮的星，"
+              "那一宮等於收到對宮射入的四化，叫向心自化（也有人稱視同自化）。這是飛星派（欽天四化／北派）的看法，三合派一般不論，各派細節也不一致。")
+
+
 def ziwei_chart(birth: BirthInput, *, today: date | None = None, years_ahead: int = 2, school=None, _no_alt: bool = False) -> ChartData:
     from fortune.ziwei import engine as Z
     from fortune.school import resolve as _resolve_school
@@ -277,6 +281,20 @@ def ziwei_chart(birth: BirthInput, *, today: date | None = None, years_ahead: in
     for star, hua in sorted(((s, h) for p in c.palaces for s, h in p.hua.items()), key=lambda x: Z.HUA_NAMES.index(x[1])):
         p = next(p for p in c.palaces if star in p.hua)
         facts.append(Fact(id=f"ziwei.hua.{hua}", group="四化", label=f"生年{hua}", value=f"{star}（在{p.name}）"))
+
+    # 自化：離心（本宮宮干化本宮的星）與向心（對宮宮干化入本宮的星），只列有的宮
+    for name in Z.PALACE_NAMES:
+        p = c.palace(name)
+        if p.self_hua:
+            row = "、".join(f"{s}{h[-1]}" for s, h in zip(Z.sihua_for(p.stem, school.ziwei.sihua_variant), Z.HUA_NAMES))
+            facts.append(Fact(id=f"ziwei.zihua.{name}", group="自化", label=f"{name}自化",
+                              value="、".join(f"{s}自{h}" for s, h in p.self_hua.items()),
+                              note=f"{name}宮干{p.stem}，{p.stem}干四化：{row}；化出的星就在本宮，是離心自化", how=_HOW_ZIHUA))
+        if p.inward_hua:
+            opp = c.palaces[(Z.BRANCHES.index(p.branch) + 6) % 12]
+            facts.append(Fact(id=f"ziwei.xiangxin.{name}", group="自化", label=f"{name}・對宮化入",
+                              value="、".join(f"{s}{h}" for s, h in p.inward_hua.items()),
+                              note=f"對宮{opp.name}宮干{opp.stem}化出，落在{name}的星上，是向心自化（也有人稱視同自化）", how=_HOW_ZIHUA))
 
     age = _age_on(birth.birth_date, today, school.bazi.xusui_boundary)
     cur = c.current_daxian(age)

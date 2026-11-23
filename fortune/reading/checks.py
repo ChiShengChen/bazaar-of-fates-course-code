@@ -44,12 +44,15 @@ def _vocab_in_chart(chart: ChartData) -> dict[str, set[str]]:
          "gz": set(_GZ.findall(text)), "stars": {s for s in STARS if s in text}}
     if chart.system == "ziwei":
         v["palace_stars"] = {p["name"]: set(p["major"] + p["lucky"] + p["unlucky"] + p["other"]) for p in chart.payload["palaces"]}
-        hua = set()
+        hua, self_hua = set(), set()
         for p in chart.payload["palaces"]:
             hua |= {f"{s}{h}" for s, h in p["hua"].items()}
+            self_hua |= {f"{s}{h}" for s, h in (p.get("self_hua") or {}).items()}
+            hua |= self_hua | {f"{s}{h}" for s, h in (p.get("inward_hua") or {}).items()}   # 自化、對宮化入也是盤上的四化
         for f in chart.facts:                     # 流年四化也算
             hua |= set(re.findall(r"([一-鿿]{2})化([祿權科忌])", f.note))
         v["hua"] = {x if isinstance(x, str) else x[0] + "化" + x[1] for x in hua}
+        v["self_hua"] = self_hua
     return v
 
 
@@ -118,7 +121,10 @@ def chart_check(reading: "Reading", chart: ChartData) -> dict[str, Any]:
                             issues.append({"section": s.key, "sentence": sent.strip(), "rule": f"「{star}」不在{pname}"})
                 for m in re.finditer(r"([一-鿿]{2})化([祿權科忌])", sent):
                     if m.group(0) not in v["hua"] and m.group(1) in STARS:
-                        issues.append({"section": s.key, "sentence": sent.strip(), "rule": f"「{m.group(0)}」不在生年或流年四化裡"})
+                        issues.append({"section": s.key, "sentence": sent.strip(), "rule": f"「{m.group(0)}」不在生年、流年四化或自化裡"})
+                for m in re.finditer(r"([一-鿿]{2})自化([祿權科忌])", sent):   # 「巨門自化忌」：要真的是那顆星的離心自化
+                    if m.group(1) in STARS and f"{m.group(1)}化{m.group(2)}" not in v["self_hua"]:
+                        issues.append({"section": s.key, "sentence": sent.strip(), "rule": f"盤上沒有「{m.group(0)}」"})
     # 去重
     seen, uniq = set(), []
     for i in issues:

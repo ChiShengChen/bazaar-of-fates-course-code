@@ -96,7 +96,7 @@ def test_laiyin_card_is_loaded_and_selected(mei):
     card = cards["gong.laiyin"]
     assert card.system == "ziwei" and "來因宮" in card.keywords
     assert {"意義", "正面", "負面", "常見組合", "出處"} <= set(card.sections) and "子、丑" in card.sections["意義"]
-    assert sum(c.system in ("bazi", "ziwei") for c in cards.values()) == 86     # 投影片 2-3、5-1 講的張數
+    assert sum(c.system in ("bazi", "ziwei") for c in cards.values()) == 87     # 投影片 2-3、5-1 講的張數
     picked = [c.id for c in select_cards(ziwei_chart(mei))]
     assert "gong.laiyin" in picked and "gong.jiaoyou" in picked            # 小美的來因宮在交友宮，交友宮的卡也一起挑
 
@@ -119,3 +119,50 @@ def test_ziwei_current_year_uses_lunar_new_year(mei):
     assert any(f.id == "ziwei.liunian.2026" and "今年" in f.note for f in before.facts)
     after = ziwei_chart(mei, today=date(2027, 2, 10))
     assert any(f.id == "ziwei.liunian.2027" and "今年" in f.note for f in after.facts)
+
+
+# 自化：本宮宮干化出的星在本宮＝離心自化；化到對宮的星＝向心（記在被化的星上，「對宮化入」）
+def test_zihua_for_mei(mei):
+    z = Z.cast(mei)
+    self_hua = {p.name: p.self_hua for p in z.palaces if p.self_hua}
+    assert self_hua == {"命宮": {"巨門": "化忌"}, "夫妻宮": {"太陰": "化忌"}, "遷移宮": {"太陽": "化權"},
+                        "交友宮": {"武曲": "化權"}, "福德宮": {"天梁": "化科"}}
+    inward = {p.name: p.inward_hua for p in z.palaces if p.inward_hua}
+    assert inward == {"命宮": {"巨門": "化祿", "文曲": "化科"}, "疾厄宮": {"右弼": "化科"}}   # 遷移辛干、父母戊干化入
+
+
+def test_zihua_facts_and_payload(mei):
+    c = ziwei_chart(mei)
+    f = c.fact("ziwei.zihua.命宮")
+    assert f.value == "巨門自化忌" and "宮干丁" in f.note and "離心自化" in f.note and "三合派" in f.how
+    g = c.fact("ziwei.xiangxin.命宮")
+    assert g.value == "巨門化祿、文曲化科" and "遷移宮宮干辛" in g.note
+    life = next(p for p in c.payload["palaces"] if p["name"] == "命宮")
+    assert life["self_hua"] == {"巨門": "化忌"} and life["inward_hua"] == {"巨門": "化祿", "文曲": "化科"}
+
+
+def test_zihua_follows_sihua_school():
+    from fortune.school import resolve
+    b = BirthInput(birth_date="1990-01-24", birth_time="10:00", gender="female", longitude=121.5)   # 命宮壬干，紫微天府同宮
+    std = Z.cast(b, school=resolve(overrides={"ziwei": {"sihua_variant": "standard"}})).palace("命宮")
+    tf = Z.cast(b, school=resolve(overrides={"ziwei": {"sihua_variant": "tianfu_ke"}})).palace("命宮")
+    assert std.self_hua == {"紫微": "化權"} and tf.self_hua == {"紫微": "化權", "天府": "化科"}
+    from fortune.chart import cast
+    alts = cast("ziwei", b).fact("ziwei.zihua.命宮").alternatives        # 盤面「派」角標看得到另一派的結果
+    assert any("天府自化科" in a["value"] for a in alts)
+
+
+def test_zihua_chart_check_and_card(mei):
+    from fortune.knowledge.store import select_cards
+    from fortune.reading.checks import chart_check
+    from fortune.reading.report import Reading, Section
+    c = ziwei_chart(mei)
+    def reading(text):
+        return Reading(system="ziwei", system_zh="紫微斗數", subject=c.subject, persona="測", disclaimer="",
+                       sections=[Section(key="overview", title="總論", text=text, evidence=["ziwei.zihua.命宮"])])
+    ok = reading("命宮巨門自化忌，又有遷移宮化入的巨門化祿。")
+    bad = reading("命宮巨門自化祿，凡事順遂。")
+    assert chart_check(ok, c)["ok"]
+    res = chart_check(bad, c)
+    assert not res["ok"] and "巨門自化祿" in res["issues"][0]["rule"]
+    assert "hua.zihua" in [x.id for x in select_cards(c)]

@@ -17,6 +17,7 @@
       --cinnabar: #a8352b; --cinnabar-soft: rgba(168, 53, 43, 0.1);
       --jade: #2f7f5c; --jade-soft: rgba(47, 127, 92, 0.12);
       --grey: #6b6e78; --grey-soft: rgba(107, 110, 120, 0.12);
+      --fx: #6a4bb8; --fx-soft: rgba(106, 75, 184, 0.1); --sky: #2d6aa3;
       --star-opacity: 0; color-scheme: light;
     }
     body { background: #fff; color: #111; }
@@ -221,6 +222,7 @@
           h2('紫微斗數', chart.subject),
           el('div', { class: 'card' },
             renderZiweiGrid(chart, { compact: true }),
+            renderZiweiLegend(),
             warningsBlock(chart.warnings),
             renderLuckNow(p.luck, { year }),
             ('luck' in p && p.luck == null) && el('p', { class: 'hint', text: '大限 → 流年需要性別才能定方向。' })),

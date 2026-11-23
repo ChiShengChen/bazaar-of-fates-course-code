@@ -18,6 +18,9 @@
   --jade-soft: rgba(92, 180, 140, 0.16);
   --grey: #8b8f9a;
   --grey-soft: rgba(139, 143, 154, 0.16);
+  --fx: #a98ce8;                         /* 飛星派獨有的標示（來因、自化、對宮化入）的框線色 */
+  --fx-soft: rgba(169, 140, 232, 0.14);
+  --sky: #7fb3e6;                        /* 化科的字色（空心框的自科、入科用） */
   --star-opacity: 1;
   --radius: 10px;
   --serif: "Noto Serif TC", "Songti TC", "PingFang TC", "Microsoft JhengHei", serif;
@@ -44,6 +47,9 @@
     --jade-soft: rgba(47, 127, 92, 0.14);
     --grey: #6b6e78;
     --grey-soft: rgba(107, 110, 120, 0.14);
+    --fx: #6a4bb8;
+    --fx-soft: rgba(106, 75, 184, 0.1);
+    --sky: #2d6aa3;
     --star-opacity: 0.35;
     color-scheme: light;
   }
@@ -325,7 +331,24 @@ input:focus, select:focus { outline: none; border-color: var(--gold); box-shadow
 .hua-科 { color: #0f1f33; background: #7fb3e6; }
 .hua-忌 { color: #fff; background: var(--cinnabar); }
 .body-mark { color: var(--cinnabar); border: 1px solid var(--cinnabar); border-radius: 3px; padding: 0 3px; font-size: 0.62rem; }
-.laiyin-mark { color: var(--gold); border: 1px solid var(--gold); border-radius: 3px; padding: 0 3px; font-size: 0.62rem; cursor: help; }
+.laiyin-mark { color: var(--fx); border: 1px solid var(--fx); background: var(--fx-soft); border-radius: 3px; padding: 0 3px; font-size: 0.62rem; cursor: help; }
+/* 飛星派獨有的標示：框線一律用 --fx（紫），字色照祿權科忌。自化實線框「自忌」、對宮化入虛線框「入祿」；生年四化是實心色塊（各派通用） */
+.zihua { display: inline-block; font-size: 0.58rem; vertical-align: super; padding: 0 2px; border: 1px solid var(--fx); background: var(--fx-soft); border-radius: 3px; line-height: 1.3; margin-left: 1px; cursor: help; }
+.zihua.in { border-style: dashed; }
+/* 盤面標示說明：左邊色條分派別 */
+.ziwei-legend { margin: 10px 0 4px; padding: 8px 12px; border: 1px solid var(--line-soft); border-radius: var(--radius); font-size: 0.78rem; color: var(--ink-soft); display: grid; gap: 5px; }
+.zl-row { display: grid; grid-template-columns: 5.2em 1fr; gap: 8px; align-items: baseline; padding-left: 8px; border-left: 3px solid var(--grey); }
+.zl-row.sanhe { border-left-color: var(--gold); }
+.zl-row.feixing { border-left-color: var(--fx); }
+.zl-row.school { border-left-color: var(--cinnabar); }
+.zl-row > b { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.zl-row.feixing > b { color: var(--fx); }
+.zl-items { display: flex; flex-wrap: wrap; gap: 3px 14px; }
+.zl-item { display: inline-flex; align-items: baseline; gap: 4px; }
+.zl-item .hua, .zl-item .zihua, .zl-item .bri { vertical-align: baseline; }
+.zl-item .ptn { font-size: 0.7rem; }
+.zl-note { margin: 2px 0 0; font-size: 0.72rem; color: var(--ink-mute); }
+.zihua.zh-祿 { color: var(--jade); } .zihua.zh-權 { color: var(--gold); } .zihua.zh-科 { color: var(--sky); } .zihua.zh-忌 { color: var(--cinnabar); }
 .palace .p-marks { display: inline-flex; gap: 3px; }
 .ziwei-center { grid-column: 2 / 4; grid-row: 2 / 4; background: var(--panel-solid); padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 0.82rem; text-align: center; }
 .ziwei-center .who { font-family: var(--serif); color: var(--gold); font-size: 1.05rem; }
@@ -428,7 +451,7 @@ input:focus, select:focus { outline: none; border-color: var(--gold); box-shadow
 
 /* 列印：只印目前分頁的內容 */
 @media print {
-  :root { --bg: #fff; --panel: #fff; --panel-solid: #fff; --ink: #111; --ink-soft: #444; --ink-mute: #777; --gold: #8a6d1f; --line: #999; --line-soft: #ccc; color-scheme: light; }
+  :root { --bg: #fff; --panel: #fff; --panel-solid: #fff; --ink: #111; --ink-soft: #444; --ink-mute: #777; --gold: #8a6d1f; --fx: #6a4bb8; --fx-soft: rgba(106, 75, 184, 0.1); --sky: #2d6aa3; --line: #999; --line-soft: #ccc; color-scheme: light; }
   .sky, .site-header .persona-line, .birth-panel, .tabs, .toolbar, .inline-form, .chat-form, .notice, #tab-synastry > .panel { display: none !important; }
   body { background: #fff; color: #111; }
   .tab-panel { display: none; }

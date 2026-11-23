@@ -41,7 +41,7 @@ source: 示範知識庫・課程編寫（綜合《子平真詮》《滴天髓》
 | 十四主星 | `star.` | `star.ziwei` 紫微、`tianji` 天機、`taiyang` 太陽、`wuqu` 武曲、`tiantong` 天同、`lianzhen` 廉貞、`tianfu` 天府、`taiyin` 太陰、`tanlang` 貪狼、`jumen` 巨門、`tianxiang` 天相、`tianliang` 天梁、`qisha` 七殺、`pojun` 破軍 |
 | 六吉 | `star.` | `star.zuofu` 左輔、`youbi` 右弼、`wenchang` 文昌、`wenqu` 文曲、`tiankui` 天魁、`tianyue` 天鉞 |
 | 六煞 | `star.` | `star.qingyang` 擎羊、`tuoluo` 陀羅、`huoxing` 火星、`lingxing` 鈴星、`dikong` 地空、`dijie` 地劫 |
-| 四化 | `hua.` | `hua.lu` 化祿、`hua.quan` 化權、`hua.ke` 化科、`hua.ji` 化忌 |
+| 四化 | `hua.` | `hua.lu` 化祿、`hua.quan` 化權、`hua.ke` 化科、`hua.ji` 化忌；`zihua` 自化（離心、向心，飛星派） |
 | 神煞 | `shensha.` | `shensha.tianyi` 天乙貴人、`wenchang` 文昌貴人、`taiji` 太極貴人、`tianchu` 天廚貴人、`lushen` 祿神、`yangren` 羊刃、`jiangxing` 將星、`yima` 驛馬、`taohua` 桃花、`huagai` 華蓋、`jiesha` 劫煞、`wangshen` 亡神、`hongluan` 紅鸞、`tianxi` 天喜、`guchen` 孤辰、`guasu` 寡宿、`tianyi_doctor` 天醫、`sifei` 四廢、`kuigang` 魁罡 |
 | 姓名學五格 | `wuge.` | `wuge.tian` 天格、`ren` 人格、`di` 地格、`wai` 外格、`zong` 總格 |
 | 81 數理 | `shuli.` | `shuli.ji` 吉、`banji` 半吉、`xiong` 凶 |

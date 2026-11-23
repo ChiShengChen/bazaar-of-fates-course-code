@@ -8,7 +8,7 @@
 
 ## 長什麼樣
 
-| 八字四柱（十神、藏干、旺衰 v2、大運、流年、黃曆） | 紫微十二宮（四化、廟旺、十二長生、大限→流年） |
+| 八字四柱（十神、藏干、旺衰 v2、大運、流年、黃曆） | 紫微十二宮（四化、自化、廟旺、十二長生、來因宮、大限→流年） |
 |---|---|
 | ![八字](docs/img/bazi.png) | ![紫微](docs/img/ziwei.png) |
 
@@ -20,7 +20,7 @@
 |---|---|
 | ![對話](docs/img/chat.png) | ![缺時辰](docs/img/no-birth-time.png) |
 
-八字「詳細盤面」（農曆、節氣、起運交運、胎元命宮、納音、空亡、十二長生、神煞、刑沖合會、大運×流年、流月、稱骨）：[docs/img/bazi-detail.png](docs/img/bazi-detail.png)。同盤問三次的一致性表：[docs/img/consistency.png](docs/img/consistency.png)。流派面板與「派」角標（手錶時間派下晚子時不換日）：[docs/img/school.png](docs/img/school.png)。自帶金鑰選模型：[docs/img/byok.png](docs/img/byok.png)。一頁式報告（列印成 PDF）：[docs/img/report.png](docs/img/report.png)。今日用量與各模型成本：[docs/img/usage.png](docs/img/usage.png)。手機淺色模式：[docs/img/mobile-light.png](docs/img/mobile-light.png)。以上皆為離線模式（`LLM_BACKEND=mock`）的真實畫面。
+八字「詳細盤面」（農曆、節氣、起運交運、胎元命宮、納音、空亡、十二長生、神煞、刑沖合會、大運×流年、流月、稱骨）：[docs/img/bazi-detail.png](docs/img/bazi-detail.png)。八字卡片右上角可以切成台灣傳統的「時日月年」排列，大運、流年、流月跟著由右往左，選擇會記在瀏覽器（主頁、合盤、一頁式報告共用）：[docs/img/bazi-hdmy.png](docs/img/bazi-hdmy.png)。紫微盤上紫框「來因」是來因宮（宮干＝生年天干，欽天四化／北派的說法，子丑不取），事實表與知識卡也都有，AI 解讀提到它時查得到依據。星旁紫色實線框的「自忌」「自權」是自化（本宮宮干化本宮的星），紫色虛線框的「入祿」是對宮宮干化入，生年四化則是實心色塊；紫色框都是飛星派才用的標示，盤面下方有分派別的「標示說明」。同盤問三次的一致性表：[docs/img/consistency.png](docs/img/consistency.png)。流派面板與「派」角標（手錶時間派下晚子時不換日）：[docs/img/school.png](docs/img/school.png)。自帶金鑰選模型：[docs/img/byok.png](docs/img/byok.png)。一頁式報告（列印成 PDF）：[docs/img/report.png](docs/img/report.png)。今日用量與各模型成本：[docs/img/usage.png](docs/img/usage.png)。手機淺色模式：[docs/img/mobile-light.png](docs/img/mobile-light.png)。以上皆為離線模式（`LLM_BACKEND=mock`）的真實畫面。
 
 ## 三分鐘跑起來（第 3 章）
 

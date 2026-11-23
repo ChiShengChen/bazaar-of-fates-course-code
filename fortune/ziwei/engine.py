@@ -73,6 +73,8 @@ class Palace:
     hua: dict[str, str] = field(default_factory=dict)     # 星 → 化祿/權/科/忌
     is_body: bool = False
     is_laiyin: bool = False                               # 來因宮：宮干＝生年天干（子、丑不算）
+    self_hua: dict[str, str] = field(default_factory=dict)    # 離心自化：本宮宮干化本宮的星，星 → 化X
+    inward_hua: dict[str, str] = field(default_factory=dict)  # 向心（對宮化入）：對宮宮干化本宮的星，星 → 化X
     daxian: tuple[int, int] | None = None                 # (起歲, 迄歲)
 
     def as_dict(self) -> dict:
@@ -80,6 +82,7 @@ class Palace:
             "name": self.name, "branch": self.branch, "stem": self.stem, "gz": self.stem + self.branch,
             "major": self.major, "lucky": self.lucky, "unlucky": self.unlucky, "other": self.other,
             "hua": self.hua, "is_body": self.is_body, "is_laiyin": self.is_laiyin,
+            "self_hua": self.self_hua, "inward_hua": self.inward_hua,
             "daxian": list(self.daxian) if self.daxian else None,
             "is_empty": not self.major,
         }
@@ -253,6 +256,17 @@ def cast(birth: BirthInput, *, leap_rule: str | None = None, today: date | None 
                 p.hua[s] = hua[s]
         p.major.sort(key=MAJOR_STARS.index)
         palaces.append(p)
+
+    # 自化（飛星派）：每一宮的宮干也照四化表化出祿權科忌（庚、壬干跟著流派的四化表）。
+    # 化出的星就在本宮＝離心自化；在對宮＝向心自化，記在被化的那顆星上（對宮化入）。
+    for p in palaces:
+        opp = palaces[(BRANCHES.index(p.branch) + 6) % 12]
+        mine, theirs = set(p.major + p.lucky + p.unlucky + p.other), set(opp.major + opp.lucky + opp.unlucky + opp.other)
+        for star, h in zip(sihua_for(p.stem, rules.sihua_variant), HUA_NAMES):
+            if star in mine:
+                p.self_hua[star] = h
+            if star in theirs:
+                opp.inward_hua[star] = h
 
     # 大限：命宮起，局數為起歲；陽男陰女順行（往父母宮方向），陰男陽女逆行
     if birth.gender is None:

@@ -407,14 +407,19 @@ function huaAltTitles(chart) {
   return out;
 }
 
-/** 星名＋廟旺（可選，右上角小字）＋四化角標 */
-function starWithHua(star, hua, huaAlts, brightness) {
+/** 星名＋廟旺（可選，右上角小字）＋生年四化角標（實心）＋自化（空心「自忌」）＋對宮化入（虛線「入祿」）。
+ *  zi：{ self: 本宮的 self_hua, inward: inward_hua, from: 對宮宮名 }，沒給就不畫自化 */
+function starWithHua(star, hua, huaAlts, brightness, zi = null) {
   const h = hua && hua[star];
   const alt = h && huaAlts && huaAlts[h];
   const b = brightness && brightness[star];
+  const sh = zi && zi.self && zi.self[star];
+  const ih = zi && zi.inward && zi.inward[star];
   return el('span', {}, star,
     b && el('sup', { class: `bri ${BRIGHT_CLASS[b] || 'mid'}`, text: b, title: `廟旺：${b}` }),
-    h && el('span', { class: `hua hua-${h.replace('化', '')}${alt ? ' alt' : ''}`, text: h.replace('化', ''), title: alt || null }));
+    h && el('span', { class: `hua hua-${h.replace('化', '')}${alt ? ' alt' : ''}`, text: h.replace('化', ''), title: alt || null }),
+    sh && el('span', { class: `zihua zh-${sh.replace('化', '')}`, text: `自${sh.replace('化', '')}`, title: `${star}自${sh}：本宮宮干化出、落在本宮（離心自化，飛星派）` }),
+    ih && el('span', { class: `zihua in zh-${ih.replace('化', '')}`, text: `入${ih.replace('化', '')}`, title: `${star}${ih}：對宮${zi.from || ''}的宮干化入（向心自化，飛星派）` }));
 }
 
 function renderPalace(p, lifeBranch, chart, { compact = false } = {}) {
@@ -422,7 +427,10 @@ function renderPalace(p, lifeBranch, chart, { compact = false } = {}) {
   const huaAlts = huaAltTitles(chart);
   const isLife = p.branch === lifeBranch;
   const bright = nonEmpty(p.brightness) ? p.brightness : null;
-  const star = (s) => starWithHua(s, p.hua, huaAlts, bright);
+  const oppBranch = BRANCHES12[(BRANCHES12.indexOf(p.branch) + 6) % 12];
+  const opp = ((chart && chart.payload && chart.payload.palaces) || []).find((x) => x.branch === oppBranch);
+  const zi = { self: p.self_hua, inward: p.inward_hua, from: opp ? `${opp.name}（${opp.stem || ''}干）` : '' };
+  const star = (s) => starWithHua(s, p.hua, huaAlts, bright, zi);
   const adj = Array.isArray(p.adjective_stars) ? p.adjective_stars.filter(Boolean) : [];
   const shown = adj.slice(0, 4), rest = adj.slice(4);
   return el('div', { class: `palace${isLife ? ' life' : ''}`, style: `grid-row:${row};grid-column:${col}` },
@@ -579,6 +587,29 @@ function renderZiweiGrid(chart, { compact = false } = {}) {
   ));
 }
 
+/** 盤面標示說明：框線顏色分派別（各派通用／三合派／飛星派），字色是祿權科忌。範例用的就是盤上同一套樣式 */
+function renderZiweiLegend() {
+  const tag = (cls, text) => el('span', { class: cls, text });
+  const row = (school, cls, ...items) => el('div', { class: `zl-row ${cls}` }, el('b', { text: school }), el('span', { class: 'zl-items' }, items));
+  const item = (sample, text) => el('span', { class: 'zl-item' }, sample, text);
+  return el('div', { class: 'ziwei-legend' },
+    row('各派通用', 'common',
+      item([tag('hua hua-祿', '祿'), tag('hua hua-權', '權'), tag('hua hua-科', '科'), tag('hua hua-忌', '忌')], '生年四化（實心色塊）'),
+      item(tag('body-mark', '身'), '身宮'),
+      item(null, '宮干、主星、吉星、煞星、大限四化、流年四化')),
+    row('三合派', 'sanhe',
+      item(el('sup', { class: 'bri good', text: '廟' }), '廟旺（星名右上小字）'),
+      item(tag('ptn', '祿馬交馳'), '格局（x-iztro）'),
+      item(null, '大限→流年的流曜、歲前／將前')),
+    row('飛星派', 'feixing',
+      item(tag('laiyin-mark', '來因'), '來因宮：宮干＝生年天干'),
+      item(tag('zihua zh-忌', '自忌'), '自化：本宮宮干化本宮的星'),
+      item(tag('zihua in zh-祿', '入祿'), '對宮化入：對宮宮干化本宮的星')),
+    row('流派設定', 'school',
+      item(tag('school-mark', '派'), '換一派這格會不同（滑過去看另一派）')),
+    el('p', { class: 'zl-note', text: '紫色框＝飛星派才用的標示，三合派一般不論；四化的顏色（綠祿、黃權、藍科、紅忌）在哪一派都一樣。' }));
+}
+
 function renderZiwei(chart) {
   const p = chart.payload || {};
   const thisYear = chart.cast_at ? Number(String(chart.cast_at).slice(0, 4)) : null;
@@ -586,6 +617,7 @@ function renderZiwei(chart) {
     el('h3', {}, '紫微斗數命盤', schoolTitle(chart.school)),
     el('p', { class: 'subject', text: chart.subject }),
     renderZiweiGrid(chart),
+    renderZiweiLegend(),
     el('p', { class: 'scroll-hint', text: '命盤可左右滑動' }),
     warningsBlock(chart.warnings),
     renderLuckPanel(p.luck, { year: thisYear }),

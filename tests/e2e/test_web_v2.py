@@ -61,6 +61,12 @@ def test_ziwei_luck_panel_and_brightness(page):
     marks = area.locator(".palace .laiyin-mark")                          # 來因宮：庚年在辰，小美的交友宮
     assert marks.count() == 1 and "交友宮" in marks.locator("xpath=ancestor::div[contains(@class,'palace')][1]").inner_text()
     assert "來因宮" in area.locator(".ziwei-center").inner_text()
+    life = area.locator(".palace.life")                                   # 命宮丁亥：巨門自化忌，又收到遷移宮辛干化入的巨門祿、文曲科
+    assert "自忌" in life.inner_text() and "入祿" in life.inner_text() and "入科" in life.inner_text()
+    assert area.locator(".palace .zihua:not(.in)").count() == 5 and area.locator(".palace .zihua.in").count() == 3
+    legend = area.locator(".ziwei-legend")                                 # 標示說明：分各派通用／三合派／飛星派
+    assert [t.split("\n")[0] for t in legend.locator(".zl-row > b").all_inner_texts()] == ["各派通用", "三合派", "飛星派", "流派設定"]
+    assert "來因宮" in legend.locator(".zl-row.feixing").inner_text() and "自化" in legend.locator(".zl-row.feixing").inner_text()
 
 
 def test_consistency_button(page):
