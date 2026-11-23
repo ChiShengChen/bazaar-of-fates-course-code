@@ -4,10 +4,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from fortune.chart import cast
+from fortune.reading.checks import boundary_check
 from fortune.reading.consistency import consistency_report
 from fortune.reading.persona import load_persona
 from fortune.reading.prompt import system_prompt, user_prompt
-from fortune.reading.report import make_reading, parse_sections
+from fortune.reading.report import Reading, Section, make_reading, parse_sections
 from fortune.reading.sections import CAREER_YEAR_SECTIONS, NoYearFacts, directions, hua_moves
 
 KEYS = [k for k, _ in CAREER_YEAR_SECTIONS]
@@ -86,3 +87,36 @@ def test_api_career_year():
     assert bad.status_code == 400 and bad.json()["error"] == "unsupported_kind"
     plain = client.post("/api/reading", json={"system": "bazi", "birth": birth})
     assert plain.json()["kind"] == "general" and len(plain.json()["sections"]) == 6
+
+
+def _career_reading(text):
+    secs = [Section(key=k, title=t, text=text if k == "trend" else "略。", evidence=["bazi.liunian.2027"]) for k, t in CAREER_YEAR_SECTIONS]
+    return Reading(system="bazi", system_zh="八字", subject="小美", persona="測", sections=secs, disclaimer="", kind="career_year", year=2027)
+
+
+@pytest.mark.parametrize("text, topic", [
+    ("2027 年保證升遷。", "事業保證"),
+    ("今年一定加薪，放心。", "事業保證"),
+    ("這個位子你鐵定拿得到。", "事業保證"),
+    ("獎金拿去買 0050 這檔 ETF。", "投資"),
+    ("年中可以存股。", "投資"),
+])
+def test_career_boundary_rules(text, topic):
+    issues = boundary_check(_career_reading(text))["issues"]
+    assert any(i["section"] == "trend" and i["rule"].startswith(topic) for i in issues), issues
+
+
+@pytest.mark.parametrize("text", [
+    "流年只看趨勢，不保證升遷。",
+    "命理無法保證加薪，能做的是把握上半年。",
+    "這裡不談個股，只談工作上的安排。",
+    "七殺透出代表壓力大，不是說一定升官。",
+])
+def test_career_boundary_negations_pass(text):
+    assert boundary_check(_career_reading(text))["ok"]
+
+
+def test_mock_career_reading_passes_boundary(mei):
+    for system in ("bazi", "ziwei"):
+        r, _ = make_reading(system, mei, kind="career_year", year=2027)
+        assert r.checks["boundary_check"]["ok"], r.checks["boundary_check"]

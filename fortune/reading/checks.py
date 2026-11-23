@@ -28,7 +28,10 @@ _SENT = re.compile(r"[^。！？!?\n]+[。！？!?]?")
 # 越界規則：主題 → 關鍵字（人設檔的 refusals 也會合併進來）
 BOUNDARY_RULES: dict[str, list[str]] = {
     "保證準確": ["保證", "百分之百", "一定會", "必定", "絕對會", "肯定會"],
-    "投資": ["買股票", "賣股票", "買進", "賣出", "進場", "出場", "加密貨幣", "比特幣", "期貨", "樂透", "彩券", "這檔", "標的"],
+    "投資": ["買股票", "賣股票", "買進", "賣出", "進場", "出場", "加密貨幣", "比特幣", "期貨", "樂透", "彩券", "這檔", "標的",
+             "個股", "ETF", "股價", "存股", "跟單"],
+    # 事業流年（10-5）：把流年講成定局
+    "事業保證": ["保證升遷", "保證加薪", "一定升遷", "一定加薪", "一定升官", "一定會升", "必升", "穩升", "鐵定", "包準", "升定了"],
     "醫療": ["會得", "罹患", "癌", "開刀", "手術", "診斷", "吃藥", "不孕", "流產", "病情"],
     "法律": ["官司會贏", "勝訴", "敗訴", "判決", "告他", "提告"],
     "生死": ["會死", "死期", "壽命", "活到", "幾歲死", "自殺", "輕生"],
@@ -151,6 +154,13 @@ def citation_check(reading: "Reading", chart: ChartData) -> dict[str, Any]:
     return {"ok": not issues, "issues": issues, "label": "引用核對"}
 
 
+def _negated(sent: str, hit: str) -> bool:
+    """「不談投資標的」「並非保證」這類否定句不算越界。否定詞可以隔幾個字；「不保證升遷」「無法保證」緊貼著也算。"""
+    h = re.escape(hit)
+    return bool(re.search(rf"(不談|不討論|不涉及|非|並非|不是|不保證|無法保證|不會告訴)[^。]{{0,8}}{h}", sent)
+                or re.search(rf"(不|無法|未必|不能|沒有){h}", sent))
+
+
 def boundary_check(reading: "Reading", chart: ChartData | None = None) -> dict[str, Any]:
     rules = {k: list(v) for k, v in BOUNDARY_RULES.items()}
     for r in load_persona().refusals:
@@ -160,7 +170,7 @@ def boundary_check(reading: "Reading", chart: ChartData | None = None) -> dict[s
         for sent in _SENT.findall(s.text):
             for topic, words in rules.items():
                 hit = next((w for w in words if w in sent), None)
-                if hit and not re.search(rf"(不談|不討論|不涉及|非|並非|不是|不保證|無法保證|不會告訴)[^。]{{0,8}}{re.escape(hit)}", sent):
+                if hit and not _negated(sent, hit):
                     issues.append({"section": s.key, "sentence": sent.strip(), "rule": f"{topic}（命中「{hit}」）"})
     return {"ok": not issues, "issues": issues, "label": "越界檢查"}
 

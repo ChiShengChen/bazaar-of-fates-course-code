@@ -161,6 +161,10 @@ input:focus, select:focus { outline: none; border-color: var(--gold); box-shadow
 .seg-btn.active { background: var(--gold-soft); color: var(--gold); }
 .inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 .inline-form input { flex: 1 1 220px; }
+/* 報告種類（10-5）：一般六段｜事業流年＋年份 */
+.inline-form #reading-kind { width: auto; flex: none; }
+.inline-form #reading-year { flex: 0 0 6.5em; }
+.reading-head .report-kind { color: var(--gold); font-weight: 600; }
 
 /* 共用：警告條、標籤、區塊 */
 .warnings { margin: 10px 0; padding: 8px 12px; border-left: 3px solid var(--gold); background: var(--gold-soft); color: var(--ink-soft); font-size: 0.85rem; border-radius: 0 6px 6px 0; }

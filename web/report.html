@@ -113,6 +113,12 @@
         try { const ov = JSON.parse(q.get('overrides') || 'null'); if (ov && typeof ov === 'object') out.overrides = ov; } catch { /* 忽略 */ }
         return out;
       }
+      /** 報告種類（10-5）：?kind=career_year&year=2027 → 八字、紫微印事業流年，姓名學不出解讀 */
+      function kindFromQuery() {
+        if (q.get('kind') !== 'career_year') return {};
+        const y = Number(q.get('year'));
+        return { kind: 'career_year', year: Number.isInteger(y) && y >= 1900 && y <= 2100 ? y : new Date().getFullYear() };
+      }
       /** 自帶金鑰：沿用 app.js 存在 localStorage 的 bof.llm（勾了「記住」才有金鑰；沒有就用站台的 AI） */
       function llmPayload() {
         try {
@@ -174,12 +180,12 @@
       const describe = (b) => `${b.name || '命主'}・${b.birth_date}${b.birth_time ? ' ' + b.birth_time : '（時辰不明）'}${b.gender ? '・' + ({ male: '男', female: '女' })[b.gender] : ''}`;
       const costLine = (r) => !r || !r.backend ? '' : r.backend === 'mock' ? '離線示範' : `${r.byok === true ? '自帶金鑰・' : ''}${r.model || r.backend}`;
 
-      function renderHead(birth, charts) {
+      function renderHead(birth, charts, label = '命理報告') {
         const chart = charts.bazi || charts.ziwei || {};
         const b = chart.birth || birth;                      // 後端回的 birth.place 可能帶日光節約時間說明
         const tz = b.tz_offset_hours != null ? `UTC${b.tz_offset_hours >= 0 ? '+' : ''}${b.tz_offset_hours}${b.dst_hours ? `（含日光節約 ${b.dst_hours} 小時）` : ''}` : '';
         return el('div', { class: 'report-head' },
-          el('h1', {}, '☯ 命運市集', el('small', { text: '命理報告' })),
+          el('h1', {}, '☯ 命運市集', el('small', { text: label })),
           el('p', { class: 'who', text: describe(b) }),
           el('p', { class: 'meta', text: [b.place ? `出生地 ${b.place}` : null, b.longitude != null ? `經度 ${b.longitude}` : null, tz].filter(Boolean).join('　') }),
           el('p', { class: 'meta' }, chart.cast_at ? `排盤 ${String(chart.cast_at).replace('T', ' ').slice(0, 16)}` : '', chart.school && chart.school.title ? el('span', {}, '　流派 ', el('span', { class: 'school-title', text: chart.school.title, title: chart.school.summary || '' })) : ''));
@@ -251,15 +257,16 @@
       }
 
       async function readingBlock(system, zh, birth, charts, extra) {
-        const box = el('div', {}, h2(`${zh}解讀`), el('p', { class: 'pending', text: '命理師正在細看命盤' }));
+        const title = extra.kind === 'career_year' ? `${zh}・${extra.year} 年事業流年` : `${zh}解讀`;
+        const box = el('div', {}, h2(title), el('p', { class: 'pending', text: '命理師正在細看命盤' }));
         root.append(box);
-        if (!charts[system]) { box.replaceChildren(h2(`${zh}解讀`), el('p', { class: 'err', text: `沒有${zh}命盤，略過解讀。` })); return null; }
+        if (!charts[system]) { box.replaceChildren(h2(title), el('p', { class: 'err', text: `沒有${zh}命盤，略過解讀。` })); return null; }
         try {
           const r = await request(API.reading, { system, birth, ...extra });
-          box.replaceChildren(h2(`${zh}解讀`, [r.persona, costLine(r)].filter(Boolean).join('・')), ...renderReadingSection(r, charts, zh).flat().filter(Boolean));
+          box.replaceChildren(h2(title, [r.persona, costLine(r)].filter(Boolean).join('・')), ...renderReadingSection(r, charts, zh).flat().filter(Boolean));
           return r;
         } catch (e) {
-          box.replaceChildren(h2(`${zh}解讀`), el('p', { class: 'err', text: `解讀失敗：${explain(e)}` }));
+          box.replaceChildren(h2(title), el('p', { class: 'err', text: `解讀失敗：${explain(e)}` }));
           return null;
         }
       }
@@ -271,7 +278,8 @@
           setStatus('');
           return;
         }
-        const extra = { ...schoolPayload(), ...llmPayload() };
+        const career = kindFromQuery();
+        const extra = { ...schoolPayload(), ...llmPayload(), ...career };
         setStatus(`排盤中…${extra.llm ? '　AI：自帶金鑰（' + extra.llm.backend + '）' : ''}`);
         let data;
         try {
@@ -282,13 +290,13 @@
           return;
         }
         const charts = { bazi: data.bazi || null, ziwei: data.ziwei || null, xingming: data.xingming || null };
-        root.append(renderHead(birth, charts), ...renderBaziSection(charts.bazi), ...renderZiweiSection(charts.ziwei, data.ziwei_candidates),
+        root.append(renderHead(birth, charts, career.kind ? `${career.year} 年事業流年報告` : '命理報告'), ...renderBaziSection(charts.bazi), ...renderZiweiSection(charts.ziwei, data.ziwei_candidates),
           ...renderXingmingSection(charts.xingming, data.xingming_error, birth));
-        document.title = `${describe((charts.bazi || charts.ziwei || {}).birth || birth)}・命理報告`;
+        document.title = `${describe((charts.bazi || charts.ziwei || {}).birth || birth)}・${career.kind ? career.year + ' 年事業流年' : '命理報告'}`;
         setStatus('命理師解讀中…');
         const r1 = await readingBlock('bazi', '八字', birth, charts, extra);
         const r2 = await readingBlock('ziwei', '紫微', birth, charts, extra);
-        const r3 = charts.xingming ? await readingBlock('xingming', '姓名學', birth, charts, extra) : null;
+        const r3 = charts.xingming && !career.kind ? await readingBlock('xingming', '姓名學', birth, charts, extra) : null;   // 姓名學沒有事業流年
         const disclaimer = (r1 && r1.disclaimer) || (r2 && r2.disclaimer) || (r3 && r3.disclaimer) || '本報告依命盤事實與程式規則產生，僅供參考，不構成醫療、投資、法律建議。';
         root.append(el('div', { class: 'report-foot' }, el('p', { class: 'disclaimer', text: disclaimer }), el('p', { class: 'hint', text: `命運市集・${new Date().toLocaleString('zh-TW', { hour12: false })} 產生${MOCK ? '・mock 模式（假資料）' : ''}` })));
         setStatus('完成，可按「列印／存 PDF」。');

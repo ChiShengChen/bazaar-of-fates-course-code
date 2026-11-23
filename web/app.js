@@ -418,6 +418,8 @@ function openReport(form) {
   const sp = schoolPayload();
   if (sp.school) q.set('school', sp.school);
   if (sp.overrides) q.set('overrides', JSON.stringify(sp.overrides));
+  const k = careerKind();                       // 解讀分頁選了事業流年，報告就印事業流年（10-5）
+  if (k.kind) { q.set('kind', k.kind); q.set('year', String(k.year || new Date().getFullYear())); }
   if (MOCK) q.set('mock', '1');
   window.open(`report.html?${q.toString()}`, '_blank', 'noopener');
 }
@@ -1031,6 +1033,7 @@ function renderReading(reading) {
   append(area,
     el('p', { class: 'subject reading-head' },
       el('span', { text: `${reading.persona ? reading.persona + '・' : ''}${reading.subject || ''}` }),
+      reading.kind === 'career_year' && el('span', { class: 'report-kind', text: `${reading.year} 年事業流年` }),
       schoolTitle(school),
       cost && el('span', { class: 'cost', text: cost, title: reading.usage && reading.usage.cache_read_tokens ? `快取讀取 ${fmtTok(reading.usage.cache_read_tokens)} tok` : null })),
     renderChecks(reading.checks),
@@ -1043,13 +1046,43 @@ function renderReading(reading) {
   $('#print-reading').disabled = false;
 }
 
+/** 報告種類（10-5）：選「事業流年」回 {kind, year}，否則 {}。年份空白就不送，後端用今年 */
+function careerKind() {
+  const sel = $('#reading-kind');
+  if (!sel || sel.value !== 'career_year') return {};
+  const y = Number($('#reading-year').value);
+  return Number.isInteger(y) && y >= 1900 && y <= 2100 ? { kind: 'career_year', year: y } : { kind: 'career_year' };
+}
+
+/** 解讀／同盤問三次用：姓名學沒有事業流年，擋下來回 null */
+function readingKind() {
+  const k = careerKind();
+  if (k.kind && state.readingSystem === 'xingming') { notice('事業流年只有八字與紫微，請先切到八字或紫微。', 'error'); return null; }
+  return k;
+}
+
+/** 報告種類選單跟著系統走：姓名學時「事業流年」反灰；選事業流年才出現年份欄（預設明年） */
+function syncReadingKind() {
+  const sel = $('#reading-kind');
+  const year = $('#reading-year');
+  if (!sel || !year) return;
+  const career = sel.querySelector('option[value="career_year"]');
+  const xm = state.readingSystem === 'xingming';
+  if (career) career.disabled = xm;
+  if (xm && sel.value === 'career_year') sel.value = 'general';
+  year.hidden = sel.value !== 'career_year';
+  if (!year.hidden && !year.value) year.value = String(new Date().getFullYear() + 1);
+}
+
 async function requestReading(focus) {
   const btn = $('#reading-btn');
   const area = $('#reading-area');
   let birth;
   try { birth = readBirth($('#birth-form')); } catch (e) { notice(e.message, 'error'); return; }
+  const kind = readingKind();
+  if (kind === null) return;
   if (!llmGuard()) return;
-  const body = { system: state.readingSystem, birth, ...schoolPayload(), ...llmPayload() };
+  const body = { system: state.readingSystem, birth, ...kind, ...schoolPayload(), ...llmPayload() };
   if (focus) body.focus = focus;
   const sentSchool = schoolCurrentInfo();
   setBusy(btn, true, '命理師思考中…');
@@ -1125,8 +1158,10 @@ async function requestConsistency() {
   const area = $('#consistency-area');
   let birth;
   try { birth = readBirth($('#birth-form')); } catch (e) { notice(e.message, 'error'); $('#birth-panel').open = true; return; }
+  const kind = readingKind();
+  if (kind === null) return;
   if (!llmGuard()) return;
-  const body = { system: state.readingSystem, birth, runs: 3, ...schoolPayload(), ...llmPayload() };
+  const body = { system: state.readingSystem, birth, runs: 3, ...kind, ...schoolPayload(), ...llmPayload() };
   setBusy(btn, true, '解讀中…（會呼叫三次模型）');
   notice('');
   clear(area).append(el('div', { class: 'card consistency pending' }, el('h3', { text: '同一張盤問三次' }), el('div', { class: 'stream-box', text: '正在把同一張盤拿去問三次，比對方向與依據是否一致…' })));
@@ -1477,7 +1512,11 @@ function init() {
   $$('#reading-system-seg .seg-btn').forEach((b) => b.addEventListener('click', () => {
     state.readingSystem = b.dataset.system;
     $$('#reading-system-seg .seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+    syncReadingKind();
   }));
+  const kindSel = $('#reading-kind');
+  if (kindSel) kindSel.addEventListener('change', syncReadingKind);
+  syncReadingKind();
 
   // 表單
   const formA = $('#birth-form');

@@ -156,6 +156,11 @@
           <button type="button" class="seg-btn" data-system="ziwei">紫微</button>
           <button type="button" class="seg-btn" data-system="xingming">姓名</button>
         </div>
+        <select name="kind" id="reading-kind" title="報告種類：一般六段，或指定一年的事業流年（四段，八字與紫微）">
+          <option value="general">一般六段</option>
+          <option value="career_year">事業流年</option>
+        </select>
+        <input name="year" id="reading-year" type="number" min="1900" max="2100" step="1" title="事業流年：哪一年" aria-label="事業流年的年份" hidden>
         <input name="focus" placeholder="想問的重點（可留空），例：今年換工作合適嗎？">
         <button type="submit" class="btn primary" id="reading-btn">請命理師解讀</button>
         <button type="button" class="btn" id="consistency-btn" title="同一張盤問三次模型，看方向與依據是否一致（會呼叫三次）">同盤問三次</button>
