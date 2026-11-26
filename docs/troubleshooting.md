@@ -50,12 +50,12 @@ Windows：`netstat -ano | findstr :8000` 找 PID，再 `taskkill /PID <PID> /F`�
 
 **症狀 A（黃點）**：頁首狀態列顯示「離線示範模式：未接 AI 金鑰，解讀由程式依盤面事實組出」。解讀照樣出得來，但是是離線版（`LLM_BACKEND=mock`）。這**不是錯誤**，是預設；只是你以為已經接上 AI 了。
 
-**症狀 B（紅點）**：狀態列顯示「AI 連線失敗（OpenAI・gpt-4o-mini）：401 ...」或類似訊息；解讀會自動退回離線版，網站不會掛。
+**症狀 B（紅點）**：狀態列顯示「AI 連線失敗（OpenAI・gpt-4o-mini）：Client error '401 Unauthorized' …」或類似訊息；解讀會自動退回離線版，網站不會掛。
 
 **關鍵訊息**：`curl http://localhost:8000/api/health` 的回傳。黃點時 `"backend":"mock"`；紅點時 `model_info.error` 裡有東西，例如：
 
 ```
-"error": "Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-abc...', 'type': 'invalid_request_error', ...}}"
+"error": "Client error '401 Unauthorized' for url 'https://api.openai.com/v1/chat/completions'…"
 ```
 
 Anthropic 的長這樣：`authentication_error: invalid x-api-key`。

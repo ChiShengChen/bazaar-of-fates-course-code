@@ -24,6 +24,10 @@ STARS = ["紫微", "天機", "太陽", "武曲", "天同", "廉貞", "天府", "
 PALACES = ["命宮", "兄弟宮", "夫妻宮", "子女宮", "財帛宮", "疾厄宮", "遷移宮", "交友宮", "官祿宮", "田宅宮", "福德宮", "父母宮"]
 _GZ = re.compile(r"[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]")
 _SENT = re.compile(r"[^。！？!?\n]+[。！？!?]?")
+_BOUNDARY_NEGATION = re.compile(
+    r"(?:不談|不討論|不涉及|並非|不是|(?<!除)非|不保證|無法保證|不會告訴)[^，,；;：:]{0,8}$"
+    r"|(?:不|無法|未必|不能|沒有)$"
+)
 
 # 越界規則：主題 → 關鍵字（人設檔的 refusals 也會合併進來）
 BOUNDARY_RULES: dict[str, list[str]] = {
@@ -151,6 +155,13 @@ def citation_check(reading: "Reading", chart: ChartData) -> dict[str, Any]:
     return {"ok": not issues, "issues": issues, "label": "引用核對"}
 
 
+def _has_unnegated_hit(sentence: str, keyword: str) -> bool:
+    return any(
+        _BOUNDARY_NEGATION.search(sentence, 0, match.start()) is None
+        for match in re.finditer(re.escape(keyword), sentence)
+    )
+
+
 def boundary_check(reading: "Reading", chart: ChartData | None = None) -> dict[str, Any]:
     rules = {k: list(v) for k, v in BOUNDARY_RULES.items()}
     for r in load_persona().refusals:
@@ -159,8 +170,8 @@ def boundary_check(reading: "Reading", chart: ChartData | None = None) -> dict[s
     for s in reading.sections:
         for sent in _SENT.findall(s.text):
             for topic, words in rules.items():
-                hit = next((w for w in words if w in sent), None)
-                if hit and not re.search(rf"(不談|不討論|不涉及|非|並非|不是|不保證|無法保證|不會告訴)[^。]{{0,8}}{re.escape(hit)}", sent):
+                hit = next((w for w in words if w in sent and _has_unnegated_hit(sent, w)), None)
+                if hit:
                     issues.append({"section": s.key, "sentence": sent.strip(), "rule": f"{topic}（命中「{hit}」）"})
     return {"ok": not issues, "issues": issues, "label": "越界檢查"}
 

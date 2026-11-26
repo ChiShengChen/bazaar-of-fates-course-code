@@ -105,6 +105,18 @@ def test_boundary_check(mei):
     assert boundary_check(ok, c)["ok"]
 
 
+def test_boundary_check_negated_guarantees(mei):
+    c = cast("bazi", mei, today=TODAY)
+    safe = _reading_with(c, "這裡不保證升遷，也無法保證一定會加薪。")
+    assert boundary_check(safe, c)["ok"]
+
+    repeated = _reading_with(c, "不保證升遷，但保證會加薪。")
+    other = _reading_with(c, "不保證升遷，但你一定會加薪。")
+    for reading in (repeated, other):
+        issues = boundary_check(reading, c)["issues"]
+        assert any(issue["rule"].startswith("保證準確") for issue in issues)
+
+
 def test_consistency_offline_is_perfect(mei):
     rep = consistency_report("bazi", mei, runs=3, today=TODAY)
     assert rep["ok"] and rep["worst_score"] == 1.0
