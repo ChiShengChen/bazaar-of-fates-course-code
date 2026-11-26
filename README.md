@@ -24,30 +24,40 @@
 
 ## 三分鐘跑起來（第 3 章）
 
+先取得學員版：
+
 ```bash
 git clone https://github.com/ChiShengChen/bazaar-of-fates-course-code.git
 cd bazaar-of-fates-course-code
-python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -e ".[dev,llm]"
-cp .env.example .env                                     # 先不用填金鑰
-python -m fortune                                        # → http://localhost:8000
 ```
 
-Python 用 3.11 到 3.14。最新的 3.15（2026-10-09 發布）先不要：算節氣的 `ephem` 還沒有 3.15 的安裝檔，`pip install` 會要求 Microsoft C++ 編譯工具。Python、Git、VS Code、Claude Code 怎麼裝，課程 3-0 有從零開始的示範。
+用 VS Code 開啟有 `pyproject.toml` 的專案資料夾。課程示範用 Python 3.12，安裝工具看課程 3-0。
 
-Windows（PowerShell）第一行要拆開打，並指定版本；第一次啟動被擋（「因為這個系統上已停用指令碼執行」）時先改執行原則：
+Windows（PowerShell）逐行執行。看到 `True`，才繼續建立環境：
 
 ```powershell
-py -V:3.14 -m venv .venv
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned     # 只要做一次，問你時打 Y
-.venv\Scripts\activate
+Test-Path .\pyproject.toml
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+$env:LLM_BACKEND = 'mock'
+.\.venv\Scripts\python.exe -m fortune
 ```
 
-沒有 AI 金鑰也能跑：預設 `LLM_BACKEND=mock`（離線模式），排盤照樣準確，解讀由程式依同一套事實與知識卡組出來，查核流程全部能示範。
+macOS 或 Linux 在專案資料夾執行：
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+[ -f .env ] || cp .env.example .env
+LLM_BACKEND=mock .venv/bin/python -m fortune
+```
+
+看到終端機顯示啟動網址後，用瀏覽器開 `http://localhost:8000`，用範例資料排出八字與紫微。可另開 `http://localhost:8000/api/health` 確認 `status` 是 `ok`、`backend` 是 `mock`。想停止時，回到啟動網站的終端機按 Ctrl+C。
 
 ### 接上你手上有的 AI（任一家都行）
 
-`.env` 填兩行就好：
+先在虛擬環境安裝 `.[llm]`。PowerShell 可另開新的終端機，讓 `.env` 裡的模型設定生效。`.env` 填兩行：
 
 | `LLM_BACKEND` | `LLM_API_KEY` 去哪拿 | 預設模型（`LLM_MODEL` 可改） |
 |---|---|---|

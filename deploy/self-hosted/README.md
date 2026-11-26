@@ -68,14 +68,21 @@ long polling 只需要對外連線，不用開 port。
 
 ## 5. 更新
 ```bash
-sudo -u fortune /opt/fortune/app/deploy/self-hosted/update.sh
+sudo -u fortune bash /opt/fortune/app/deploy/self-hosted/update.sh
 ```
-會 `git pull`、裝相依、跑測試（失敗就不重啟）、重啟服務、打 health。
+腳本會更新工作目錄、安裝測試相依並離線執行測試與命例驗收。請等四個步驟全部通過，再由有 sudo 權限的管理者執行下列兩行。腳本退出失敗時，先讀錯誤，工作目錄可能已更新。
+
+```bash
+sudo systemctl restart fortune
+curl -fsS http://127.0.0.1:8000/api/health
+```
+
+若有啟用 `fortune-bot`，再由管理者執行 `sudo systemctl try-restart fortune-bot`。
 
 ## 6. 緊急開關與備份
 - 關站：`.env` 改 `MAINTENANCE=1` → `sudo systemctl restart fortune`；所有 `/api` 回 503，網頁顯示「命理師暫時休息中」
 - 備份：`data/cost_log.csv`（成本紀錄）、`data/usage.json`（今日用量）、`data/sessions/`（對話，24 小時自動清）；`.env` 另外存
-- 防火牆：`sudo ufw allow 80,443/tcp && sudo ufw enable`（8000 不開）
+- 防火牆：啟用前先允許目前使用的 SSH 管理埠，以及網站的 80 和 443。保留原有連線，另開一個 SSH 視窗驗證還能登入。8000 只供本機反向代理。
 
 ## 7. 用 3090 跑本機模型（第 9 章「AI 費用 0」的示範，選做）
 ```bash
