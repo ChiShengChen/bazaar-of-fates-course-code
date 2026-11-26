@@ -1,19 +1,18 @@
 # Render Blueprint（8-1）— 放在 repo 根目錄 Render 才認得。
-# New → Blueprint → 選這個 repo；金鑰在 Environment 面板填，不要寫進這裡。
+# New → Blueprint → 選自己的 repo。先用離線模式部署教學站。
 services:
   - type: web
-    name: ai-fortune-teller
+    name: ai-fortune-teller-course-demo
     runtime: python
-    pythonVersion: "3.12"
     plan: free
     buildCommand: pip install -e ".[llm]"
     startCommand: python -m fortune
     healthCheckPath: /api/health
     envVars:
+      - key: API_HOST
+        value: "0.0.0.0"
       - key: LLM_BACKEND
-        value: deepseek        # 課程預設（docs/model-choice.md）；或 anthropic / openai / gemini
-      - key: LLM_API_KEY
-        sync: false            # 在面板手動填
+        value: mock            # 確認用量與個資設定後，再在 Render Environment 啟用供應商
       - key: LLM_MODEL
         value: ""              # 留空用該家預設
       - key: RATE_LIMIT_PER_IP_PER_DAY
@@ -25,7 +24,7 @@ services:
       - key: MAINTENANCE
         value: "0"
       - key: SESSION_TTL_HOURS
-        value: "24"
+        value: "0"
       - key: SCHOOL
         value: default
       - key: PERSONA
